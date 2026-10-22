@@ -2,11 +2,7 @@
 
 Веб-панель для **Яндекс Станции 1 поколения** (`tulip-d1` / `yandexstation` / aarch64).
 
-Один бинарь `alice-httpd` на колонке (`:8080`), без Node. UI в браузере в той же Wi‑Fi сети:
-
-```text
-http://<IP-колонки>:8080
-```
+Один бинарь `alice-httpd` на колонке, без Node.
 
 ---
 
@@ -42,6 +38,14 @@ http://<IP-колонки>:8080
 
 ---
 
+## Root
+
+Нужен **root** на колонке. Как получить на Станции 1:
+
+https://t.me/c/4457409211/1710/6152
+
+---
+
 ## Установка
 
 Одна команда **на колонке**. `-k` обязателен: у системного curl нет CA-сертификатов.
@@ -49,19 +53,34 @@ http://<IP-колонки>:8080
 ### SSH (уже root)
 
 ```sh
-curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh
+curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh
 ```
 
 ### ADB
 
 ```bash
-adb connect 192.168.1.116:5555
-adb shell "su 0 sh -c 'curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh'"
+adb connect <IP-колонки>:5555
+adb shell "su 0 sh -c 'curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh'"
 ```
 
-`su 0` нужен: обычный `adb shell` на Станции 1 — не root.
+`su 0` нужен: обычный `adb shell` на Станции 1 — не root.  
+Ссылка через jsDelivr — у `raw.githubusercontent.com` бывает залипший кэш.
 
-Скрипт скачает релиз `alice-panel-station1.tar`, распакует в `/data/local/alice-panel` и запустит панель.
+Скрипт скачает релиз, распакует в `/data/local/alice-panel` и запустит панель.
+
+### После установки
+
+В конце скрипт сам напишет адрес, например:
+
+```text
+==> панель запущена
+    открой в браузере (та же Wi‑Fi, что и колонка):
+    http://192.168.1.116:8080
+```
+
+Открой этот URL в браузере на компе/телефоне в той же сети: **IP колонки + порт 8080**.
+
+Если IP в выводе не появился — посмотри IP колонки в роутере / `ip addr` и зайди на `http://<IP>:8080`.
 
 ---
 

@@ -14,6 +14,8 @@ set -e
 # глушим шум bionic при запуске из dropbear/ssh
 export ANDROID_DATA="${ANDROID_DATA:-/data}"
 export ANDROID_ROOT="${ANDROID_ROOT:-/system}"
+# adb su даёт uid=0, но SELinux shell — иначе rm/chmod ломаются
+setenforce 0 2>/dev/null || true
 
 REPO="${PANEL_REPO:-initialfox/yandex-station-1-panel}"
 TAG="${PANEL_TAG:-latest}"
@@ -84,7 +86,14 @@ sleep 2
 
 if curl -kfsS "http://127.0.0.1:8080/api/health" >/dev/null 2>&1 || curl -fsS "http://127.0.0.1:8080/api/health" >/dev/null 2>&1; then
   IP=$(ip -4 addr show wlan0 2>/dev/null | sed -n 's/.*inet \([0-9.]*\).*/\1/p' | head -1)
-  echo "==> OK  http://${IP:-<IP>}:8080"
+  if [ -z "$IP" ]; then
+    IP=$(ip -4 addr show 2>/dev/null | sed -n 's/.*inet \([0-9.]*\).*/\1/p' | grep -v '^127\.' | head -1)
+  fi
+  echo
+  echo "==> панель запущена"
+  echo "    открой в браузере (та же Wi‑Fi, что и колонка):"
+  echo "    http://${IP:-<IP-колонки>}:8080"
+  echo
   curl -ksS "http://127.0.0.1:8080/api/health" 2>/dev/null || curl -sS "http://127.0.0.1:8080/api/health"
   echo
 else
