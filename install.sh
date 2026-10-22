@@ -68,6 +68,21 @@ fi
 rm -f "$TMP" ._* 2>/dev/null || true
 chmod 755 alice-httpd start.sh 2>/dev/null || chmod 755 alice-httpd
 
+echo "==> ставлю zsh → $BINDIR/zsh"
+if [ -f "$PREFIX/repo/packages/zsh/zsh" ]; then
+  cp "$PREFIX/repo/packages/zsh/zsh" "$BINDIR/zsh"
+  chmod 755 "$BINDIR/zsh"
+  # удобный PATH для SSH
+  if [ -d /system/xbin ]; then
+    mount -o remount,rw /system 2>/dev/null || true
+    ln -sf "$BINDIR/zsh" /system/xbin/zsh 2>/dev/null || true
+    mount -o remount,ro /system 2>/dev/null || true
+  fi
+  echo "    ok $($BINDIR/zsh --version 2>/dev/null || echo zsh)"
+else
+  echo "    zsh не найден в пакете — пропустит" >&2
+fi
+
 cat > start.sh <<EOF
 #!/system/bin/sh
 export ANDROID_DATA=/data

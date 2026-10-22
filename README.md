@@ -22,8 +22,8 @@
 
 ### Пакеты
 - Установка aarch64-бинарников на колонку в `/data/local/bin`
-- Сейчас в репо: **zsh**, **fastfetch**
-- Кнопка «Установить / Переустановить» из UI
+- **zsh** ставится сразу при установке панели
+- В UI также: **fastfetch** и переустановка пакетов
 
 ### Терминал
 - Веб-шелл прямо в браузере (xterm + PTY на колонке)
@@ -46,27 +46,17 @@ https://t.me/c/4457409211/1710/6152
 
 ---
 
-## Установка
+## Установка (SSH)
 
-Одна команда **на колонке**. `-k` обязателен: у системного curl нет CA-сертификатов.
-
-### SSH (уже root)
+Одна команда **на колонке под root**. `-k` обязателен: у системного curl нет CA.
 
 ```sh
 curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh
 ```
 
-### ADB
+Скрипт скачает релиз, распакует в `/data/local/alice-panel`, поставит **zsh** в `/data/local/bin` и запустит панель.
 
-```bash
-adb connect <IP-колонки>:5555
-adb shell "su 0 sh -c 'curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh'"
-```
-
-`su 0` нужен: обычный `adb shell` на Станции 1 — не root.  
-Ссылка через jsDelivr — у `raw.githubusercontent.com` бывает залипший кэш.
-
-Скрипт скачает релиз, распакует в `/data/local/alice-panel` и запустит панель.
+> Через ADB нормально не ставится: `adb su` на Станции 1 без полных capabilities.
 
 ### После установки
 
@@ -78,9 +68,9 @@ adb shell "su 0 sh -c 'curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex
     http://192.168.1.116:8080
 ```
 
-Открой этот URL в браузере на компе/телефоне в той же сети: **IP колонки + порт 8080**.
+Открой этот URL в браузере: **IP колонки + порт 8080** (та же Wi‑Fi).
 
-Если IP в выводе не появился — посмотри IP колонки в роутере / `ip addr` и зайди на `http://<IP>:8080`.
+Если IP в выводе не появился — посмотри IP в роутере / `ip addr` и зайди на `http://<IP>:8080`.
 
 ---
 
