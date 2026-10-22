@@ -26,9 +26,7 @@
 - Инфо по HDMI (разрешение, state, fps, яркость)
 - **Снимки экрана** через `screencap` (framebuffer 1920×1080)
 
-![Дисплей](docs/panel-display.png)
-
-![Снимок HDMI](docs/hdmi-screenshot.png)
+![Дисплей · снимок HDMI](docs/panel-display-shot.png)
 
 ### Пакеты
 - Установка aarch64-бинарников в `/data/local/bin`
@@ -37,6 +35,8 @@
 
 ### Терминал
 - Веб-шелл в браузере (xterm + PTY)
+
+![Терминал · fastfetch](docs/panel-terminal.png)
 
 ### Автообновление
 - При открытии панели проверяется GitHub Releases
