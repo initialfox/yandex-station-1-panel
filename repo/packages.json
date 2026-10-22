@@ -29,7 +29,7 @@
       "name": "dropbear",
       "version": "2022.82",
       "arch": "aarch64",
-      "description": "SSH server (musl) → /data/dropbear + dropbearkey",
+      "description": "SSH server (musl) → /data/dropbear",
       "url": "packages/dropbear",
       "kind": "dir",
       "dest": "/data/dropbear",
@@ -37,6 +37,98 @@
       "bin": "dropbear",
       "md5": "be965f9bd221d8d6b13566dcf63dab81",
       "size": 1981634
+    },
+    {
+      "name": "curl",
+      "version": "8.14.1",
+      "arch": "aarch64",
+      "description": "curl static musl (HTTPS без -k)",
+      "url": "packages/curl/curl",
+      "md5": "6bd6fe99be9ee85df1860d593fe47c8e",
+      "size": 8295928,
+      "bin": "curl"
+    },
+    {
+      "name": "miniserve",
+      "version": "0.29.0",
+      "arch": "aarch64",
+      "description": "Раздать файлы по HTTP в LAN",
+      "url": "packages/miniserve/miniserve",
+      "md5": "26874a10798eedf5ee570d58ffcd925b",
+      "size": 2056368,
+      "bin": "miniserve"
+    },
+    {
+      "name": "btop",
+      "version": "1.4.7",
+      "arch": "aarch64",
+      "description": "Мониторинг CPU/RAM/сети (TUI)",
+      "url": "packages/btop/btop",
+      "md5": "48b1ea87cdf4568421a5016378545827",
+      "size": 2184904,
+      "bin": "btop"
+    },
+    {
+      "name": "ffmpeg",
+      "version": "6.x-static",
+      "arch": "aarch64",
+      "description": "ffmpeg static (конвертация/запись аудио)",
+      "url": "packages/ffmpeg/ffmpeg",
+      "md5": "46548bde53f0ff25084b3e13b7d56762",
+      "size": 51134160,
+      "bin": "ffmpeg"
+    },
+    {
+      "name": "nano",
+      "version": "8.0",
+      "arch": "aarch64",
+      "description": "Редактор nano (musl + ncurses)",
+      "url": "packages/nano",
+      "kind": "dir",
+      "dest": "/data/local/opt/nano",
+      "check": "/data/local/opt/nano/bin/nano",
+      "bin": "nano",
+      "md5": "ed5ace9eef37a1c173ebd08b6bd635b1",
+      "size": 4171746
+    },
+    {
+      "name": "iperf3",
+      "version": "3.17.1",
+      "arch": "aarch64",
+      "description": "iperf3 — замер скорости сети",
+      "url": "packages/iperf3",
+      "kind": "dir",
+      "dest": "/data/local/opt/iperf3",
+      "check": "/data/local/opt/iperf3/bin/iperf3",
+      "bin": "iperf3",
+      "md5": "fa37bf38921cc9d289ca3b092a5ad548",
+      "size": 3109986
+    },
+    {
+      "name": "tcpdump",
+      "version": "4.99.x",
+      "arch": "aarch64",
+      "description": "tcpdump + libpcap (сниффер)",
+      "url": "packages/tcpdump",
+      "kind": "dir",
+      "dest": "/data/local/opt/tcpdump",
+      "check": "/data/local/opt/tcpdump/bin/tcpdump",
+      "bin": "tcpdump",
+      "md5": "66ade955d8b61f68744f586ca16fe64b",
+      "size": 4299846
+    },
+    {
+      "name": "nmap",
+      "version": "7.95",
+      "arch": "aarch64",
+      "description": "nmap — сканер портов/сети",
+      "url": "packages/nmap",
+      "kind": "dir",
+      "dest": "/data/local/opt/nmap",
+      "check": "/data/local/opt/nmap/bin/nmap",
+      "bin": "nmap",
+      "md5": "191e50258c9559738a1d115452570a29",
+      "size": 17551522
     }
   ]
 }

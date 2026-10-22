@@ -145,19 +145,28 @@ app.post("/api/install/:name", (req, res) => {
 
   if (pkg.kind === "dir") {
     const dest = pkg.dest || path.join(BINDIR, bin);
-    fs.mkdirSync(dest, { recursive: true });
-    for (const f of fs.readdirSync(src)) {
-      if (f.endsWith("-ssh")) continue;
-      const from = path.join(src, f);
-      if (fs.statSync(from).isDirectory()) continue;
-      fs.copyFileSync(from, path.join(dest, f));
-      fs.chmodSync(path.join(dest, f), 0o755);
-    }
-    const wrap = path.join(src, `${bin}-ssh`);
-    if (fs.existsSync(wrap)) {
-      fs.mkdirSync(BINDIR, { recursive: true });
-      fs.copyFileSync(wrap, path.join(BINDIR, bin));
-      fs.chmodSync(path.join(BINDIR, bin), 0o755);
+    const copyTree = (fromDir, toDir) => {
+      fs.mkdirSync(toDir, { recursive: true });
+      for (const f of fs.readdirSync(fromDir)) {
+        if (f.endsWith("-ssh") || f.endsWith("-run")) continue;
+        const from = path.join(fromDir, f);
+        const to = path.join(toDir, f);
+        if (fs.statSync(from).isDirectory()) copyTree(from, to);
+        else {
+          fs.copyFileSync(from, to);
+          fs.chmodSync(to, 0o755);
+        }
+      }
+    };
+    copyTree(src, dest);
+    fs.mkdirSync(BINDIR, { recursive: true });
+    for (const wrapName of [`${bin}-run`, `${bin}-ssh`]) {
+      const wrap = path.join(src, wrapName);
+      if (fs.existsSync(wrap)) {
+        fs.copyFileSync(wrap, path.join(BINDIR, bin));
+        fs.chmodSync(path.join(BINDIR, bin), 0o755);
+        break;
+      }
     }
     return res.json({ ok: true, name, path: dest, kind: "dir", version: pkg.version });
   }

@@ -168,12 +168,18 @@ func main() {
 				http.Error(w, err.Error(), 500)
 				return
 			}
-			// optional PATH wrapper
-			wrapSrc := filepath.Join(src, bin+"-ssh")
-			if st, err := os.Stat(wrapSrc); err == nil && !st.IsDir() {
-				wrapDst := filepath.Join(*bindir, bin)
-				_, _, _ = copyFile(wrapSrc, wrapDst)
-				_ = os.Chmod(wrapDst, 0755)
+			// PATH wrapper: name-run или name-ssh → /data/local/bin/name
+			if err := os.MkdirAll(*bindir, 0755); err == nil {
+				for _, wrap := range []string{bin + "-run", bin + "-ssh"} {
+					wrapSrc := filepath.Join(src, wrap)
+					if st, err := os.Stat(wrapSrc); err == nil && !st.IsDir() {
+						wrapDst := filepath.Join(*bindir, bin)
+						_, _, _ = copyFile(wrapSrc, wrapDst)
+						_ = os.Chmod(wrapDst, 0755)
+						tryXbinLink(wrapDst, bin)
+						break
+					}
+				}
 			}
 			writeJSON(w, map[string]any{
 				"ok": true, "name": name, "path": dest, "kind": "dir", "version": pkg.Version,
@@ -549,24 +555,36 @@ func installDirPkg(srcDir, destDir string) error {
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return err
 	}
+	return copyTree(srcDir, destDir)
+}
+
+func copyTree(srcDir, destDir string) error {
 	entries, err := os.ReadDir(srcDir)
 	if err != nil {
 		return err
 	}
 	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
 		name := e.Name()
-		// wrappers like dropbear-ssh идут в bindir отдельно
-		if strings.HasSuffix(name, "-ssh") {
+		// wrappers *-ssh / *-run ставятся в bindir отдельно
+		if strings.HasSuffix(name, "-ssh") || strings.HasSuffix(name, "-run") {
 			continue
 		}
-		_, _, err := copyFile(filepath.Join(srcDir, name), filepath.Join(destDir, name))
+		src := filepath.Join(srcDir, name)
+		dst := filepath.Join(destDir, name)
+		if e.IsDir() {
+			if err := os.MkdirAll(dst, 0755); err != nil {
+				return err
+			}
+			if err := copyTree(src, dst); err != nil {
+				return err
+			}
+			continue
+		}
+		_, _, err := copyFile(src, dst)
 		if err != nil {
 			return err
 		}
-		_ = os.Chmod(filepath.Join(destDir, name), 0755)
+		_ = os.Chmod(dst, 0755)
 	}
 	return nil
 }

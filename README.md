@@ -2,7 +2,7 @@
 
 Веб-панель для **Яндекс Станции 1 поколения** (`tulip-d1` / `yandexstation` / aarch64).
 
-Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.2.2**.
+Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.3.0**.
 
 ![Обзор панели](docs/panel-overview.png)
 
@@ -31,7 +31,8 @@
 ### Пакеты
 - Установка aarch64-бинарников в `/data/local/bin`
 - **zsh** ставится сразу при установке панели
-- **dropbear** 2022.82 (SSH) → `/data/dropbear` + `dropbearkey`
+- **dropbear** (SSH), **curl**, **miniserve**, **btop**, **ffmpeg**
+- **nano**, **iperf3**, **tcpdump**, **nmap** (musl bundles → `/data/local/opt`)
 - В UI: **fastfetch** и переустановка
 
 ![Пакеты](docs/panel-packages.png)
