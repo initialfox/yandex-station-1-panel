@@ -43,6 +43,8 @@
 - Если есть новая версия — баннер и кнопка **Обновить**
 - Обновление само переустанавливает панель на колонке (`install.sh`)
 
+![Автообновление](docs/panel-update.png)
+
 Файлы: `/data/local/alice-panel/` · лог: `httpd.log` · рестарт: `sh /data/local/alice-panel/start.sh`
 
 ---
