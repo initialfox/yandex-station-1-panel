@@ -1,0 +1,109 @@
+════════════════════════════════════════════════════════
+НАЗВАНИЕ ТЕМЫ: Обход Яндекс.Станции
+ОПИСАНИЕ: ADB · root · панели · пакеты · DIY
+════════════════════════════════════════════════════════
+
+——— ШАПКА (первый пост) ———
+
+[CENTER][SIZE=5][B][COLOR=DarkBlue]Обход Яндекс.Станции[/COLOR][/B][/SIZE]
+[SIZE=3]ADB, root, панели, пакеты и всё остальное DIY[/SIZE]
+[SIZE=1][COLOR=Gray]Mini / Mini 2 / Station 1 / Макс и другие[/COLOR][/SIZE][/CENTER]
+
+[QUOTE][B]Внимание![/B] Неофициальные методы. Всё на свой страх и риск. Администрация 4PDA и авторы ответственности не несут.[/QUOTE]
+
+[B]О чём тема:[/B]
+Сборник обходов и самоделок для Яндекс.Станций. Инструкции — по ссылкам, статус методов пишите в тред.
+
+[B]Инструкции:[/B]
+[LIST]
+[*] [B]eQuasar[/B] — ADB через Emudhra / подмена quasar → [URL="https://4pda.to/forum/index.php?showtopic=1128279&view=findpost&p=145629828"]пост на 4PDA[/URL] · архив [B]eQuasar-trunk.zip[/B]
+[*] [B]Alice Panel[/B] (Station 1) → [URL="https://github.com/initialfox/yandex-station-1-panel"]GitHub[/URL]
+[/LIST]
+
+[B]Обсуждение / авторы:[/B]
+[LIST]
+[*] [URL="https://t.me/+G466rLDm2pY5ZTMy"]Telegram[/URL]
+[*] eQuasar: [URL="https://blahaj.digital"]bitracker[/URL]
+[/LIST]
+
+[B]Темы по устройствам:[/B]
+[LIST]
+[*] [URL="https://4pda.to/forum/index.php?showtopic=1011360"]Яндекс.Станция Макс[/URL]
+[*] [URL="https://4pda.to/forum/index.php?showtopic=903514"]Яндекс.Станция[/URL]
+[/LIST]
+
+[CENTER][SIZE=1][COLOR=Gray]Обход Яндекс.Станции · ссылки обновляются[/COLOR][/SIZE][/CENTER]
+
+
+——— ПОСТ: инструкция eQuasar (вставляешь вторым, потом ссылку кидаешь в шапку) ———
+
+[SIZE=4][B]eQuasar — включение ADB на Яндекс.Станции[/B][/SIZE]
+[SIZE=2]через утечку ключей Emudhra · архив [B]eQuasar-trunk.zip[/B] во вложении[/SIZE]
+
+[QUOTE]MITM с сертами Emudhra. Работает, пока Яндекс не отозвал сертификаты. На свой страх и риск.[/QUOTE]
+
+[B]Нужно:[/B]
+[LIST]
+[*] nginx
+[*] DNS-сервер
+[*] роутер с кастомным DNS по DHCP
+[*] архив eQuasar-trunk.zip
+[/LIST]
+
+[B]Проверено:[/B] [CODE]yandexstation_mini2 0.369.1.46.4778262943.20261013.299[/CODE]
+
+credits: [URL=https://blahaj.digital]bitracker[/URL]
+
+[SPOILER=Содержимое архива]
+[CODE]
+equasar/
+  README.md
+  copymetoroot/
+    etc/nginx/sites-enabled/quasar
+    opt/fakequasar/certs/fullchain.pem
+    opt/fakequasar/certs/quasar-all.key
+[/CODE]
+[/SPOILER]
+
+[SPOILER=Установка nginx]
+[CODE]
+cp -a equasar/copymetoroot/. /
+nginx -t && systemctl reload nginx
+[/CODE]
+[/SPOILER]
+
+[SPOILER=DNS]
+[B]На nginx:[/B]
+[CODE]
+quasar.yandex.net
+quasar.yandex.ru
+scbh.yandex.net
+[/CODE]
+
+[B]На 127.0.0.1 / мёртвый IP:[/B]
+[CODE]
+strm.yandex.ru
+rpc.alice.yandex.net
+uniproxy.alice.yandex.net
+alice.yandex.net
+alice-ats.yandex.net
+alice-ats-test.yandex.net
+[/CODE]
+[/SPOILER]
+
+[SPOILER=Активация]
+[LIST=1]
+[*] Отдать станции DNS по DHCP
+[*] Перезапустить станцию
+[*] Перезапустить ещё раз
+[*] [CODE]adb connect <IP>:5555[/CODE]
+[/LIST]
+[/SPOILER]
+
+[SPOILER=Траблшутинг]
+[LIST]
+[*] Логи: /var/log/nginx/access.log и quasar.yandex.net.access.log — ищите /get_sync_info
+[*] Нет запросов → DNS не доходит до станции
+[*] После OTA серты могли отозвать
+[/LIST]
+[/SPOILER]

@@ -1,0 +1,33 @@
+[CENTER][SIZE=5][B][COLOR=DarkBlue]Обход Яндекс.Станции[/COLOR][/B][/SIZE]
+[SIZE=3]ADB, root, панели, пакеты и всё остальное DIY[/SIZE]
+[SIZE=1][COLOR=Gray]Mini / Mini 2 / Station 1 / Макс и другие[/COLOR][/SIZE][/CENTER]
+
+[QUOTE][B]Внимание![/B] Неофициальные методы. Всё на свой страх и риск. Администрация 4PDA и авторы ответственности не несут.[/QUOTE]
+
+[B]О чём тема:[/B]
+Сборник обходов и самоделок для Яндекс.Станций. Статус методов пишите в тред.
+
+[SPOILER=Инструкции]
+[LIST]
+[*] [B]eQuasar[/B] — [URL="https://4pda.to/forum/index.php?showtopic=1128279&view=findpost&p=145629947"]ADB через Emudhra / подмена quasar[/URL]
+[*] [B]Авторут[/B] — [URL="https://4pda.to/forum/index.php?showtopic=1128279&view=findpost&p=145630088"]скрипт[/URL]
+[*] [B]ROOT Станция 1[/B] — [URL="https://4pda.to/forum/index.php?showtopic=1128279&view=findpost&p=145630158"]пост[/URL]
+[*] [B]Alice Panel[/B] (Station 1) — [URL="https://4pda.to/forum/index.php?showtopic=1128279&view=findpost&p=145630213"]пост[/URL] · [URL="https://github.com/initialfox/yandex-station-1-panel"]GitHub[/URL] · [URL="https://github.com/initialfox/yandex-station-1-panel/blob/main/PACKAGES.md"]пакеты[/URL]
+[/LIST]
+[/SPOILER]
+
+[SPOILER=Обсуждение / авторы]
+[LIST]
+[*] [URL="https://t.me/+G466rLDm2pY5ZTMy"]Telegram[/URL]
+[*] eQuasar: [URL="https://blahaj.digital"]bitracker[/URL]
+[/LIST]
+[/SPOILER]
+
+[SPOILER=Темы по устройствам]
+[LIST]
+[*] [URL="https://4pda.to/forum/index.php?showtopic=1011360"]Яндекс.Станция Макс[/URL]
+[*] [URL="https://4pda.to/forum/index.php?showtopic=903514"]Яндекс.Станция[/URL]
+[/LIST]
+[/SPOILER]
+
+[CENTER][SIZE=1][COLOR=Gray]Обход Яндекс.Станции · ссылки обновляются[/COLOR][/SIZE][/CENTER]

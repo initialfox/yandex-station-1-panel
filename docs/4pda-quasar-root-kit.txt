@@ -1,0 +1,97 @@
+[SIZE=4][B]Авторут Яндекс.Станции (скрипт)[/B][/SIZE]
+[SIZE=2]Linux · мастер до конца · архив [B]quasar-root-kit.tar.gz[/B] во вложении[/SIZE]
+
+[QUOTE][B]Внимание![/B] Только свои колонки и своя сеть. Всё на свой страх и риск.
+Проверено: [B]Лайт 2[/B], [B]Миди[/B]. Пилот: Мини 3 Про.
+Работает на [B]Linux[/B]. На [B]WSL[/B] бывают проблемы — лучше обычный Linux (Debian/Ubuntu и т.п.).
+
+[B]Важно:[/B]
+[LIST]
+[*] [B]quasar[/B] (Лайт 2, Миди и др.) — скрипт доводит до [B]root[/B]
+[*] [B]Станция 1[/B] и все на [B]Android[/B] — обход / этот путь тоже нужен: заходишь в [B]ADB[/B], но [B]без root[/B]
+[*] как получить [B]root после взлома[/B] на Android-станциях — отдельная инструкция (будет в теме)
+[/LIST]
+[/QUOTE]
+
+Скрипт сам поднимает локальный HTTPS-прокси, правит ответы quasar (включает сетевой ADB), ждёт root и предлагает защиту рута + запрет OTA. DNS на роутере ставишь руками — скрипт покажет команды.
+
+[B]В архиве:[/B]
+[LIST]
+[*] [B]station-root.sh[/B] — меню (Enter = мастер)
+[*] [B]server.py[/B] — прокси на :443
+[*] [B]rules.json[/B] — правила (ADB + блок обновлений)
+[*] [B]chain.pem[/B] / [B]leaf.key[/B] — сертификаты (ключ не светить)
+[/LIST]
+
+[B]На ПК нужно:[/B]
+[CODE]sudo apt install python3 openssl dnsutils curl avahi-utils[/CODE]
+adb подтянется сам, если его ещё нет.
+
+[HR]
+
+[SPOILER=Как запустить]
+[LIST=1]
+[*] Распаковать [B]quasar-root-kit.tar.gz[/B]
+[*] [CODE]cd quasar-root-kit
+chmod +x station-root.sh
+./station-root.sh[/CODE]
+[*] Enter — пункт [B]1. МАСТЕР[/B]
+[*] Поставить на роутере DNS: [B]quasar.yandex.net → IP этого ПК[/B] (скрипт подскажет под Keenetic/MikroTik/OpenWrt/pi-hole)
+[*] Когда попросит — выключить/включить колонку из розетки
+[*] Дождаться root (adb :5555)
+[*] Согласиться на fortress и запрет OTA
+[*] Убрать DNS с роутера — рут уже на колонке, скрипт больше не нужен
+[/LIST]
+[/SPOILER]
+
+[SPOILER=Меню]
+[B]Главное[/B]
+[LIST]
+[*] [B]1[/B] Мастер — рут шаг за шагом (рекомендуется)
+[*] [B]2[/B] Статус колонки
+[/LIST]
+
+[B]Защита[/B]
+[LIST]
+[*] [B]3[/B] Fortress — чтобы Яндекс не выключил adbd
+[*] [B]4[/B] Запрет OTA — колонка не обновится
+[*] [B]5[/B] OTA-щит на роутере (можно до рута, без скрипта)
+[/LIST]
+
+[B]Утилиты[/B]
+[LIST]
+[*] [B]6[/B] Бэкап / разведка прошивки
+[*] [B]7[/B] Root-shell
+[*] [B]8[/B] Как снять DNS с роутера
+[*] [B]9[/B] Справка
+[*] [B]10[/B] Собрать архив для друга
+[*] [B]q[/B] Выход
+[/LIST]
+[/SPOILER]
+
+[SPOILER=Команды без меню]
+[CODE]
+./station-root.sh --run
+./station-root.sh --status
+./station-root.sh --fortress
+./station-root.sh --fortress-off
+./station-root.sh --ota-off
+./station-root.sh --ota-on
+./station-root.sh --shell
+./station-root.sh --backup
+COLUMN_IP=192.168.x.x ./station-root.sh --status
+[/CODE]
+[/SPOILER]
+
+[SPOILER=Важно]
+[LIST]
+[*] [B]Станция 1 / Android[/B] — ADB будет, root нет; root после взлома — отдельный гайд
+[*] adb :5555 на quasar = root всем в Wi‑Fi — не открывай порт в интернет
+[*] логи mitm не публиковать (там могут быть токены)
+[*] leaf.key не выкладывать отдельно
+[*] заводской сброс снимает рут — придётся заново
+[*] другие модели quasar — механика та же, но не все проверены; есть --backup
+[/LIST]
+[/SPOILER]
+
+[CENTER][SIZE=1][COLOR=Gray]вложение: quasar-root-kit.tar.gz[/COLOR][/SIZE][/CENTER]

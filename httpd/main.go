@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -459,6 +460,7 @@ func buildSystem(repoDir string) map[string]any {
 		"arch":       "arm64",
 		"uptime_sec": readUptime(),
 		"memory":     readMem(),
+		"storage":    readStorage(),
 		"loadavg":    readLoad(),
 		"cpus":       4,
 		"ts":         time.Now().Unix(),
@@ -522,6 +524,85 @@ func readMem() map[string]any {
 		usedPct = float64(total-avail) * 100 / float64(total)
 	}
 	return map[string]any{"total_kb": total, "available_kb": avail, "used_pct": float64(int(usedPct*10)) / 10}
+}
+
+// readStorage — ПЗУ: размер eMMC + занятость ключевых разделов (/data, /system, /cache).
+func readStorage() map[string]any {
+	out := map[string]any{}
+	if b := strings.TrimSpace(readFile("/sys/block/mmcblk0/size")); b != "" {
+		if sectors, err := strconv.ParseInt(b, 10, 64); err == nil && sectors > 0 {
+			totalB := sectors * 512
+			out["emmc_total_kb"] = totalB / 1024
+			out["emmc_total_human"] = fmtBytes(totalB)
+			out["device"] = "mmcblk0"
+		}
+	}
+	mounts := []map[string]any{}
+	var dataUsedPct float64
+	var dataTotalKB, dataAvailKB int64
+	for _, mp := range []string{"/data", "/system", "/cache", "/sdcard"} {
+		m := readMount(mp)
+		if m == nil {
+			continue
+		}
+		mounts = append(mounts, m)
+		if mp == "/data" {
+			dataUsedPct, _ = m["used_pct"].(float64)
+			dataTotalKB, _ = m["total_kb"].(int64)
+			dataAvailKB, _ = m["available_kb"].(int64)
+		}
+	}
+	out["mounts"] = mounts
+	if dataTotalKB > 0 {
+		out["data_total_kb"] = dataTotalKB
+		out["data_available_kb"] = dataAvailKB
+		out["data_used_pct"] = dataUsedPct
+	}
+	return out
+}
+
+func readMount(path string) map[string]any {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(path, &st); err != nil {
+		return nil
+	}
+	bsize := int64(st.Bsize)
+	if bsize <= 0 {
+		return nil
+	}
+	total := int64(st.Blocks) * bsize
+	avail := int64(st.Bavail) * bsize
+	used := total - avail
+	if used < 0 {
+		used = 0
+	}
+	pct := 0.0
+	if total > 0 {
+		pct = float64(used) * 100 / float64(total)
+	}
+	return map[string]any{
+		"path":          path,
+		"total_kb":      total / 1024,
+		"used_kb":       used / 1024,
+		"available_kb":  avail / 1024,
+		"used_pct":      float64(int(pct*10)) / 10,
+		"total_human":   fmtBytes(total),
+		"used_human":    fmtBytes(used),
+		"avail_human":   fmtBytes(avail),
+	}
+}
+
+func fmtBytes(b int64) string {
+	if b >= 1024*1024*1024 {
+		return fmt.Sprintf("%.1f ГБ", float64(b)/(1024*1024*1024))
+	}
+	if b >= 1024*1024 {
+		return fmt.Sprintf("%.0f МБ", float64(b)/(1024*1024))
+	}
+	if b >= 1024 {
+		return fmt.Sprintf("%.0f КБ", float64(b)/1024)
+	}
+	return fmt.Sprintf("%d Б", b)
 }
 
 func readFile(p string) string {

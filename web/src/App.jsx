@@ -42,6 +42,8 @@ function Overview({ system, onRefresh }) {
 
   const memPct = live?.memory?.used_pct ?? st.memory?.used_pct ?? 0;
   const load1 = live?.loadavg?.["1"] ?? 0;
+  const storage = live?.storage;
+  const romPct = storage?.data_used_pct ?? 0;
 
   return (
     <>
@@ -79,10 +81,16 @@ function Overview({ system, onRefresh }) {
           </div>
         </div>
         <div className="card">
-          <h3>RAM станции</h3>
+          <h3>ПЗУ (/data)</h3>
           <div className="stat-value">
-            {st.memory?.total_human || fmtBytesKb(st.memory?.total_kb)}
-            <small>всего на колонке (снимок)</small>
+            {romPct ? `${romPct}%` : "—"}
+            <small>
+              свободно {fmtBytesKb(storage?.data_available_kb)} / {fmtBytesKb(storage?.data_total_kb)}
+              {storage?.emmc_total_human ? ` · eMMC ${storage.emmc_total_human}` : ""}
+            </small>
+          </div>
+          <div className="bar">
+            <i style={{ width: `${Math.min(100, romPct || 0)}%` }} />
           </div>
         </div>
         <div className="card">
@@ -379,6 +387,7 @@ function Shell() {
 
 function Hardware({ system }) {
   const st = system?.station;
+  const storage = system?.live?.storage;
   if (!st) return null;
   return (
     <>
@@ -389,6 +398,45 @@ function Hardware({ system }) {
         </div>
       </div>
       <div className="grid two">
+        <div className="card">
+          <h2>ПЗУ (eMMC)</h2>
+          <div className="kv">
+            <div className="kv-row">
+              <span>Устройство</span>
+              <span>{storage?.device || "mmcblk0"}</span>
+            </div>
+            <div className="kv-row">
+              <span>Ёмкость</span>
+              <span>{storage?.emmc_total_human || fmtBytesKb(storage?.emmc_total_kb) || "—"}</span>
+            </div>
+          </div>
+          {(storage?.mounts || []).length > 0 ? (
+            <table className="proc-table" style={{ marginTop: "0.75rem" }}>
+              <thead>
+                <tr>
+                  <th>раздел</th>
+                  <th>занято</th>
+                  <th>свободно</th>
+                  <th>всего</th>
+                </tr>
+              </thead>
+              <tbody>
+                {storage.mounts.map((m) => (
+                  <tr key={m.path}>
+                    <td className="name">{m.path}</td>
+                    <td>{m.used_pct}%</td>
+                    <td>{m.avail_human || fmtBytesKb(m.available_kb)}</td>
+                    <td>{m.total_human || fmtBytesKb(m.total_kb)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="muted" style={{ marginTop: "0.75rem" }}>
+              Нет живых данных о монтировании
+            </p>
+          )}
+        </div>
         <div className="card">
           <h2>I2C</h2>
           <table className="proc-table">
@@ -415,7 +463,7 @@ function Hardware({ system }) {
           </p>
         </div>
         <div className="card">
-          <h2>Разделы</h2>
+          <h2>Имена разделов</h2>
           <p className="mono" style={{ margin: 0, lineHeight: 1.6, color: "var(--ink-dim)" }}>
             {(st.storage_partitions || []).join(" · ")}
           </p>

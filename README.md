@@ -13,7 +13,7 @@
 ### Обзор
 - Модель и железо: Allwinner R18, Android 6.0.1, HDMI 1920×1080
 - Прошивка Quasar: software / vendor / revision, APK, roles, spotter
-- Живые метрики хоста: loadavg, RAM, uptime
+- Живые метрики хоста: loadavg, RAM, **ПЗУ** (eMMC + /data /system /cache), uptime
 - Сеть и доступ: Glagol, SSH (dropbear), ADB
 
 ### Железо

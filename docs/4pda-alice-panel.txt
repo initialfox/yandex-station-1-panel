@@ -1,0 +1,52 @@
+[SIZE=4][B]Alice Panel — веб-панель для Яндекс.Станции 1[/B][/SIZE]
+[SIZE=2]tulip-d1 / aarch64 · v0.3.0 · [URL=https://github.com/initialfox/yandex-station-1-panel]GitHub[/URL][/SIZE]
+
+[QUOTE]Нужен [B]root[/B] и SSH/ADB на колонке.
+Root: [URL="https://4pda.to/forum/index.php?showtopic=1128279&view=findpost&p=145630158"]пост ROOT Станция 1[/URL]
+[/QUOTE]
+
+Один бинарь [B]alice-httpd[/B] на станции (без Node). В браузере: [B]http://IP:8080[/B].
+
+[B]Репозиторий:[/B] [URL=https://github.com/initialfox/yandex-station-1-panel]github.com/initialfox/yandex-station-1-panel[/URL]
+
+[B]Список пакетов (актуальный, на GitHub):[/B]
+[URL=https://github.com/initialfox/yandex-station-1-panel/blob/main/PACKAGES.md]PACKAGES.md[/URL]
+· сырой каталог: [URL=https://github.com/initialfox/yandex-station-1-panel/blob/main/repo/packages.json]packages.json[/URL]
+
+[HR]
+
+[SPOILER=Что умеет]
+[LIST]
+[*] Обзор: модель, прошивка Quasar, RAM / load / uptime, сеть, SSH, ADB
+[*] Железо: SoC, CPU, I2C, разделы, thermal
+[*] Дисплей: HDMI + скриншоты (screencap)
+[*] Пакеты: установка aarch64-утилит с вкладки Packages
+[*] Веб-шелл в браузере
+[*] Автообновление с GitHub Releases
+[/LIST]
+[/SPOILER]
+
+[SPOILER=Установка]
+По SSH (root):
+
+[CODE]
+curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh
+[/CODE]
+
+[B]-k[/B] нужен: у системного curl на колонке нет CA.
+
+После установки скрипт напишет адрес, например:
+[CODE]http://192.168.x.x:8080[/CODE]
+
+Файлы: [B]/data/local/alice-panel/[/B] · рестарт: [CODE]sh /data/local/alice-panel/start.sh[/CODE]
+[/SPOILER]
+
+[SPOILER=Пакеты]
+Актуальный список не дублируем здесь — смотри на GitHub (обновляется с релизами):
+
+[URL=https://github.com/initialfox/yandex-station-1-panel/blob/main/PACKAGES.md]→ PACKAGES.md[/URL]
+
+Кратко сейчас: zsh, fastfetch, dropbear, curl, miniserve, btop, ffmpeg, nano, iperf3, tcpdump, nmap.
+[/SPOILER]
+
+[CENTER][SIZE=1][COLOR=Gray]Alice Panel · Станция 1 · GitHub Releases[/COLOR][/SIZE][/CENTER]

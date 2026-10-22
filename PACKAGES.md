@@ -7,9 +7,9 @@
 | **zsh** | 5.9.2 | Z shell (static musl), ставится вместе с панелью |
 | **fastfetch** | 2.70.0 | Системная информация в терминале |
 | **dropbear** | 2022.82 | SSH-сервер → `/data/dropbear` |
-| **curl** | 8.14.1 | HTTP-клиент (static musl) |
+| **curl** | 8.14.1 | HTTP-клиент (static + Mozilla CA) |
 | **miniserve** | 0.29.0 | Раздача файлов по HTTP |
-| **btop** | 1.4.7 | Мониторинг процессов |
+| **btop** | 1.4.7 | Мониторинг процессов (обёртка UTF-8 / `--force-utf`) |
 | **ffmpeg** | 7.0.2 | Медиаконвертер (static glibc — на Android может не стартовать) |
 | **nano** | 8.0 | Редактор (Alpine musl → `/data/local/opt/nano`) |
 | **iperf3** | 3.17.1 | Измерение пропускной способности |

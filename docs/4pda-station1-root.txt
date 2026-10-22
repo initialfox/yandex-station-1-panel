@@ -1,0 +1,88 @@
+[SIZE=4][B]ROOT — Яндекс.Станция 1-го поколения[/B][/SIZE]
+[SIZE=2]Станция 1 · прошивка [B]2.369.5.46.4778391386.20261013.52[/B] · архив [B]Station1_ROOT.zip[/B][/SIZE]
+
+[QUOTE][B]Внимание![/B] Только свои устройства. Кирпич / гарантия — на свой страх и риск.
+Нужен уже работающий [B]ADB[/B] (после обхода Emudhra / автоскрипта). На Станции 1 ADB без root — этот гайд как раз про получение root.
+
+[B]Не заливать[/B] эти boot на Мини, Лайт, Макс и другие модели — только [B]Станция 1[/B].
+[/QUOTE]
+
+IP ниже — адрес колонки в LAN.
+
+[B]В архиве:[/B]
+[LIST]
+[*] [B]boot-root.img[/B] — патченый boot (его заливать)
+[*] [B]boot.img[/B] — заводской boot (откат)
+[*] [B]ssh/[/B] — Dropbear + install.sh
+[/LIST]
+
+[B]Хеши:[/B]
+[CODE]
+boot-root.img  5bb6c43f37ae658112120604dc84eeb358c742587a427e85c77c7d9d19559478
+boot.img       e1dbdbb6bcd5e3589fc4c0ca6220856c6d242c40376d406d47720e2fbd8ad8dd
+[/CODE]
+
+[HR]
+
+[SPOILER=1. Залить boot-root]
+С ПК, из папки с распакованным архивом:
+
+[CODE]
+adb connect IP:5555
+adb push boot-root.img /data/local/tmp/boot-root.img
+adb shell su 0 /system/bin/busybox-smp dd if=/data/local/tmp/boot-root.img of=/dev/block/mmcblk0p6 bs=4096 count=4096
+adb shell su 0 sync
+adb shell '/system/bin/busybox-smp sha256sum /data/local/tmp/boot-root.img; su 0 /system/bin/busybox-smp dd if=/dev/block/mmcblk0p6 bs=4096 count=4096 2>/dev/null | /system/bin/busybox-smp sha256sum'
+[/CODE]
+
+Обе строки хеша должны быть:
+[CODE]5bb6c43f37ae658112120604dc84eeb358c742587a427e85c77c7d9d19559478[/CODE]
+
+Потом:
+[CODE]adb reboot[/CODE]
+[/SPOILER]
+
+[SPOILER=2. Проверка после загрузки]
+[CODE]
+adb connect IP:5555
+adb shell id
+telnet IP 2323
+[/CODE]
+
+В telnet:
+[CODE]
+id
+grep CapEff /proc/self/status
+[/CODE]
+
+Нужно увидеть [B]uid=0(root)[/B] и [B]CapEff: 0000001fffffffff[/B].
+[/SPOILER]
+
+[SPOILER=3. SSH (Dropbear)]
+С ПК:
+[CODE]
+adb connect IP:5555
+adb push ssh /data/local/tmp/ssh
+[/CODE]
+
+Telnet:
+[CODE]
+telnet IP 2323
+sh /data/local/tmp/ssh/install.sh
+[/CODE]
+
+В конце должно быть [B]OK[/B]. Вход:
+[CODE]
+ssh root@IP
+[/CODE]
+Пароль: [B]1[/B]
+[/SPOILER]
+
+[SPOILER=Если что-то пошло не так]
+[LIST]
+[*] Выключить станцию. Зажать кнопку Алисы и, не отпуская, включить питание (сброс аккаунта/настроек; [B]boot не откатывает[/B])
+[*] Заводской boot — тем же [B]dd[/B], файл [B]boot.img[/B], хеш [CODE]e1dbdbb6bcd5e3589fc4c0ca6220856c6d242c40376d406d47720e2fbd8ad8dd[/CODE]
+[/LIST]
+[/SPOILER]
+
+[CENTER][SIZE=1][COLOR=Gray]вложение: Station1_ROOT.zip · только Станция 1[/COLOR][/SIZE][/CENTER]
