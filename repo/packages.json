@@ -36,7 +36,7 @@
       "check": "/data/dropbear/dropbear",
       "bin": "dropbear",
       "md5": "be965f9bd221d8d6b13566dcf63dab81",
-      "size": 1981634
+      "size": 1967634
     },
     {
       "name": "curl",
@@ -102,7 +102,7 @@
       "check": "/data/local/opt/iperf3/bin/iperf3",
       "bin": "iperf3",
       "md5": "fa37bf38921cc9d289ca3b092a5ad548",
-      "size": 3109672
+      "size": 9043728
     },
     {
       "name": "tcpdump",
@@ -115,7 +115,7 @@
       "check": "/data/local/opt/tcpdump/bin/tcpdump",
       "bin": "tcpdump",
       "md5": "66ade955d8b61f68744f586ca16fe64b",
-      "size": 4299528
+      "size": 10233584
     },
     {
       "name": "nmap",
@@ -128,7 +128,7 @@
       "check": "/data/local/opt/nmap/bin/nmap",
       "bin": "nmap",
       "md5": "191e50258c9559738a1d115452570a29",
-      "size": 22731246
+      "size": 28110302
     }
   ]
 }
