@@ -4,6 +4,8 @@
 
 Один бинарь `alice-httpd` на колонке, без Node.
 
+![Установка по SSH](docs/install-ssh.png)
+
 ---
 
 ## Возможности
@@ -20,27 +22,30 @@
 - Модули ядра, разделы накопителя, inputs
 - Thermal / SELinux / locale
 
+### Дисплей
+- Инфо по HDMI (разрешение, state, fps, яркость)
+- **Снимки экрана** через `screencap` (framebuffer 1920×1080)
+
 ### Пакеты
-- Установка aarch64-бинарников на колонку в `/data/local/bin`
+- Установка aarch64-бинарников в `/data/local/bin`
 - **zsh** ставится сразу при установке панели
-- В UI также: **fastfetch** и переустановка пакетов
+- В UI: **fastfetch** и переустановка
 
 ### Терминал
-- Веб-шелл прямо в браузере (xterm + PTY на колонке)
-- По умолчанию zsh из `/data/local/bin`, иначе `/system/bin/sh`
+- Веб-шелл в браузере (xterm + PTY)
 
-### Дисплей
-- Управление HDMI-выходом
-- Сейчас: **снимки экрана** (framebuffer) — в работе
+### Автообновление
+- При открытии панели проверяется GitHub Releases
+- Если есть новая версия — баннер и кнопка **Обновить**
+- Обновление само переустанавливает панель на колонке
 
-Файлы на устройстве: `/data/local/alice-panel/`  
-Лог: `httpd.log` · рестарт: `sh /data/local/alice-panel/start.sh`
+Файлы: `/data/local/alice-panel/` · лог: `httpd.log` · рестарт: `sh /data/local/alice-panel/start.sh`
 
 ---
 
 ## Root
 
-Нужен **root** на колонке. Как получить на Станции 1:
+Нужен **root**. Как получить на Станции 1:
 
 https://t.me/c/4457409211/1710/6152
 
@@ -48,19 +53,16 @@ https://t.me/c/4457409211/1710/6152
 
 ## Установка (SSH)
 
-Одна команда **на колонке под root**. `-k` обязателен: у системного curl нет CA.
-
 ```sh
 curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh
 ```
 
-Скрипт скачает релиз, распакует в `/data/local/alice-panel`, поставит **zsh** в `/data/local/bin` и запустит панель.
-
-> Через ADB нормально не ставится: `adb su` на Станции 1 без полных capabilities.
+`-k` обязателен: у системного curl нет CA.  
+Скрипт скачает релиз, поставит **zsh**, запустит панель.
 
 ### После установки
 
-В конце скрипт сам напишет адрес, например:
+Скрипт сам напишет адрес:
 
 ```text
 ==> панель запущена
@@ -68,9 +70,7 @@ curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/i
     http://192.168.1.116:8080
 ```
 
-Открой этот URL в браузере: **IP колонки + порт 8080** (та же Wi‑Fi).
-
-Если IP в выводе не появился — посмотри IP в роутере / `ip addr` и зайди на `http://<IP>:8080`.
+Открой **IP колонки :8080** в браузере в той же Wi‑Fi.
 
 ---
 
@@ -80,21 +80,4 @@ curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/i
 cd httpd && ./build.sh
 cd ../web && npm i && npm run build
 bash scripts/pack-release.sh
-```
-
-Локальный тест UI:
-
-```bash
-cd server && npm i && npm run dev   # :8080
-cd web && npm i && npm run dev      # :5173
-```
-
-### Структура
-
-```
-httpd/       Go alice-httpd (бинарь на станцию)
-web/         React UI
-server/      Express (только локальный тест)
-repo/        packages.json + бинарники + station-profile
-install.sh   установщик на колонке (curl|sh)
 ```

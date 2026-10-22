@@ -37,6 +37,7 @@ function fmtUptime(sec) {
 function Overview({ system, onRefresh }) {
   const st = system?.station;
   const live = system?.live;
+  if (!system) return <p className="muted">Загрузка…</p>;
   if (!st) return <p className="muted">Нет данных станции…</p>;
 
   const memPct = live?.memory?.used_pct ?? st.memory?.used_pct ?? 0;
@@ -362,10 +363,7 @@ function Shell() {
       <div className="page-head">
         <div>
           <h1>Терминал</h1>
-          <p>
-            Шелл панели для <strong>Станции 1</strong>. Сейчас локальный WS; на колонке — PTY в
-            alice-httpd.
-          </p>
+          <p>Веб-шелл на колонке</p>
         </div>
       </div>
       <div className="term-wrap">
@@ -433,10 +431,170 @@ function Hardware({ system }) {
   );
 }
 
+function Display() {
+  const [info, setInfo] = useState(null);
+  const [shot, setShot] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const refreshInfo = useCallback(async () => {
+    const data = await api("/api/display");
+    setInfo(data);
+  }, []);
+
+  useEffect(() => {
+    refreshInfo().catch((e) => setError(String(e.message || e)));
+  }, [refreshInfo]);
+
+  async function capture() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/display/screenshot?t=${Date.now()}`);
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      if (shot) URL.revokeObjectURL(shot);
+      setShot(URL.createObjectURL(blob));
+      await refreshInfo();
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Дисплей</h1>
+          <p>HDMI Станции 1 — снимки экрана</p>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="btn ghost" onClick={() => refreshInfo().catch((e) => setError(String(e.message || e)))}>
+            Обновить info
+          </button>
+          <button type="button" className="btn" disabled={busy} onClick={capture}>
+            {busy ? "Снимаю…" : "Снимок экрана"}
+          </button>
+        </div>
+      </div>
+      {error && <div className="banner err">{error}</div>}
+      <div className="grid two" style={{ marginBottom: "0.9rem" }}>
+        <div className="card">
+          <h2>HDMI</h2>
+          <div className="kv">
+            <div className="kv-row">
+              <span>Разрешение</span>
+              <span className="mono">{info?.hdmi || "—"}</span>
+            </div>
+            <div className="kv-row">
+              <span>Состояние</span>
+              <span>{info?.state || "—"}</span>
+            </div>
+            <div className="kv-row">
+              <span>FPS</span>
+              <span>{info?.fps ?? "—"}</span>
+            </div>
+            <div className="kv-row">
+              <span>Яркость</span>
+              <span>{info?.brightness ?? "—"}</span>
+            </div>
+            <div className="kv-row">
+              <span>screencap</span>
+              <span>{info?.screencap ? "да" : "нет"}</span>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <h2>Как это работает</h2>
+          <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>
+            Снимок берётся через <span className="mono">/system/bin/screencap</span> — framebuffer HDMI
+            1920×1080. Управление питанием экрана — позже.
+          </p>
+        </div>
+      </div>
+      {shot && (
+        <div className="shot-wrap">
+          <img src={shot} alt="Снимок HDMI" className="shot-img" />
+          <a className="btn ghost" href={shot} download="station-screen.png">
+            Скачать PNG
+          </a>
+        </div>
+      )}
+    </>
+  );
+}
+
+function UpdateBanner({ update, onUpdated }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  if (!update?.update) return null;
+
+  async function doUpdate() {
+    setBusy(true);
+    setMsg("Ставлю обновление… панель перезапустится");
+    try {
+      await api("/api/update", { method: "POST" });
+      // ждём новый health
+      const want = update.latest;
+      for (let i = 0; i < 40; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          const h = await api("/api/health");
+          if (h.version && h.version !== update.current) {
+            setMsg(`Готово · v${h.version}`);
+            onUpdated?.();
+            setTimeout(() => window.location.reload(), 800);
+            return;
+          }
+          if (want && h.version === want) {
+            setMsg(`Готово · v${h.version}`);
+            onUpdated?.();
+            setTimeout(() => window.location.reload(), 800);
+            return;
+          }
+        } catch {
+          /* ещё поднимается */
+        }
+      }
+      setMsg("Таймаут ожидания — обнови страницу вручную");
+    } catch (e) {
+      setMsg(String(e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="banner update">
+      <div>
+        <strong>Доступно обновление</strong>
+        <span className="muted">
+          {" "}
+          v{update.current} → v{update.latest}
+        </span>
+        {msg && (
+          <>
+            <br />
+            <span className="mono">{msg}</span>
+          </>
+        )}
+      </div>
+      <button type="button" className="btn" disabled={busy} onClick={doUpdate}>
+        {busy ? "Обновляю…" : "Обновить"}
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState("overview");
   const [system, setSystem] = useState(null);
   const [error, setError] = useState("");
+  const [update, setUpdate] = useState(null);
+  const [version, setVersion] = useState("");
 
   const refresh = useCallback(async () => {
     setError("");
@@ -444,17 +602,31 @@ export default function App() {
     setSystem(data);
   }, []);
 
+  const checkUpdates = useCallback(async () => {
+    try {
+      const h = await api("/api/health");
+      if (h.version) setVersion(h.version);
+      const u = await api("/api/update/check");
+      setUpdate(u);
+    } catch {
+      /* офлайн / нет сети до GitHub */
+    }
+  }, []);
+
   useEffect(() => {
     refresh().catch((e) => setError(String(e.message || e)));
-  }, [refresh]);
+    checkUpdates();
+  }, [refresh, checkUpdates]);
 
   const title = useMemo(
-    () => ({
-      overview: "Обзор",
-      packages: "Пакеты",
-      shell: "Терминал",
-      hw: "Железо",
-    })[tab],
+    () =>
+      ({
+        overview: "Обзор",
+        packages: "Пакеты",
+        shell: "Терминал",
+        hw: "Железо",
+        display: "Дисплей",
+      })[tab],
     [tab]
   );
 
@@ -465,7 +637,7 @@ export default function App() {
           <div className="brand-mark">
             Alice <span>Panel</span>
           </div>
-          <div className="brand-sub">Станция 1 · tulip-d1</div>
+          <div className="brand-sub">Станция 1 · tulip-d1{version ? ` · v${version}` : ""}</div>
         </div>
         <nav className="nav-links">
           <button type="button" className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")}>
@@ -473,6 +645,9 @@ export default function App() {
           </button>
           <button type="button" className={tab === "hw" ? "active" : ""} onClick={() => setTab("hw")}>
             Железо
+          </button>
+          <button type="button" className={tab === "display" ? "active" : ""} onClick={() => setTab("display")}>
+            Дисплей
           </button>
           <button type="button" className={tab === "packages" ? "active" : ""} onClick={() => setTab("packages")}>
             Пакеты
@@ -488,9 +663,11 @@ export default function App() {
         </div>
       </aside>
       <main className="main">
+        <UpdateBanner update={update} onUpdated={checkUpdates} />
         {error && <div className="banner err">{error}</div>}
         {tab === "overview" && <Overview system={system} onRefresh={() => refresh().catch((e) => setError(String(e.message || e)))} />}
         {tab === "hw" && <Hardware system={system} />}
+        {tab === "display" && <Display />}
         {tab === "packages" && <Packages />}
         {tab === "shell" && <Shell />}
       </main>

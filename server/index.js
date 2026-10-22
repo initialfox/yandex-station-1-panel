@@ -54,6 +54,14 @@ function hostStats() {
   };
 }
 
+function readVersion() {
+  try {
+    return fs.readFileSync(path.join(ROOT, "VERSION"), "utf8").trim().replace(/^v/, "");
+  } catch {
+    return "0.0.0-dev";
+  }
+}
+
 app.get("/api/health", (_req, res) =>
   res.json({
     ok: true,
@@ -61,8 +69,44 @@ app.get("/api/health", (_req, res) =>
     target: "yandex-station-gen1",
     device: "tulip-d1",
     platform: "yandexstation",
+    version: readVersion(),
   })
 );
+
+app.get("/api/update/check", async (_req, res) => {
+  const current = readVersion();
+  try {
+    const r = await fetch("https://api.github.com/repos/initialfox/yandex-station-1-panel/releases/latest", {
+      headers: { "User-Agent": "alice-panel" },
+    });
+    const j = await r.json();
+    const latest = String(j.tag_name || "").replace(/^v/, "");
+    const update = latest.localeCompare(current, undefined, { numeric: true }) > 0;
+    res.json({ current, latest, update, tag: j.tag_name, url: j.html_url });
+  } catch (e) {
+    res.json({ current, latest: current, update: false, error: String(e.message || e) });
+  }
+});
+
+app.post("/api/update", (_req, res) => {
+  res.status(501).json({ error: "обновление только на колонке (alice-httpd)" });
+});
+
+app.get("/api/display", (_req, res) => {
+  res.json({
+    width: 1920,
+    height: 1080,
+    hdmi: "1920x1080",
+    fps: 60,
+    state: "local-dev",
+    screencap: false,
+    source: "local",
+  });
+});
+
+app.get("/api/display/screenshot", (_req, res) => {
+  res.status(501).json({ error: "скриншот только на колонке" });
+});
 
 app.get("/api/system", (_req, res) => {
   const station = loadProfile();

@@ -370,6 +370,36 @@ code,
   background: color-mix(in srgb, var(--ok) 10%, transparent);
 }
 
+.banner.update {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #e8f5c9;
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.shot-wrap {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.shot-img {
+  max-width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #000;
+}
+
 .term-wrap {
   height: calc(100vh - 8.5rem);
   min-height: 360px;
