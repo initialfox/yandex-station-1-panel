@@ -1,0 +1,104 @@
+===YSE REPORT START===
+MODEL_RETAIL: Yandex Station Gen1
+## device-tree model/compatible
+
+
+## kernel
+Linux localhost 3.10.65 #1 SMP PREEMPT Tue Oct 13 16:32:05 MSK 2026 aarch64
+## cmdline (redacted)
+earlyprintk=sunxi-uart,0x01c28000 initcall_debug=0 console=ttyS0,115200 loglevel=4 root=/dev/mmcblk0p7 init=/init partitions=bootloader@mmcblk0p2:env@mmcblk0p5:boot@mmcblk0p6:system@mmcblk0p7:verity_block@mmcblk0p8:misc@mmcblk0p9:recovery@mmcblk0p10:cache@mmcblk0p11:metadata@mmcblk0p12:private@mmcblk0p13:frp@mmcblk0p14:rescue@mmcblk0p15:tinaos@mmcblk0p16:rback@mmcblk0p17:secret@mmcblk0p18:alog@mmcblk0p19:lback@mmcblk0p20:rboot@mmcblk0p21:media_data@mmcblk0p22:UDISK@mmcblk0p1 cma=232M androidboot.selinux=permissive androidboot.serialno=REDACTED androidboot.hardware=sun50iw1p1 boot_type=2 androidboot.lcd_x=1920 androidboot.lcd_y=1080
+## cpu
+processor	: 0
+processor	: 1
+processor	: 2
+processor	: 3
+Features	: fp asimd aes pmull sha1 sha2 crc32 
+CPU architecture: AArch64
+CPU part	: 0xd03
+Hardware	: sun50iw1
+## cpufreq
+480000 600000 720000 816000 1008000 1104000 1152000 1200000 1344000 
+
+## mem
+MemTotal:        1002756 kB
+## flash (mtd)
+## mounts
+rootfs / rootfs ro,seclabel 0 0
+tmpfs /dev tmpfs rw,seclabel,nosuid,relatime,mode=755 0 0
+devpts /dev/pts devpts rw,seclabel,relatime,mode=600,ptmxmode=000 0 0
+proc /proc proc rw,relatime 0 0
+sysfs /sys sysfs rw,seclabel,relatime 0 0
+selinuxfs /sys/fs/selinux selinuxfs rw,relatime 0 0
+debugfs /sys/kernel/debug debugfs rw,seclabel,relatime,mode=755 0 0
+none /acct cgroup rw,relatime,cpuacct 0 0
+none /sys/fs/cgroup tmpfs rw,seclabel,relatime,mode=750,gid=1000 0 0
+tmpfs /mnt tmpfs rw,seclabel,relatime,mode=755,gid=1000 0 0
+none /dev/cpuctl cgroup rw,relatime,cpu 0 0
+none /dev/cpuset cgroup rw,relatime,cpuset,noprefix,release_agent=/sbin/cpuset_release_agent 0 0
+pstore /sys/fs/pstore pstore rw,seclabel,relatime 0 0
+tmpfs /sensors_cache tmpfs rw,seclabel,relatime,mode=755,gid=1000 0 0
+/dev/block/by-name/system /system ext4 rw,seclabel,relatime,data=ordered 0 0
+/dev/block/by-name/cache /cache ext4 rw,seclabel,nosuid,nodev,noatime,discard,noauto_da_alloc,errors=panic,data=ordered 0 0
+/dev/block/by-name/alog /logger ext4 rw,seclabel,nosuid,nodev,noatime,discard,noauto_da_alloc,errors=panic,data=ordered 0 0
+/dev/block/by-name/UDISK /data ext4 rw,seclabel,nosuid,nodev,noatime,discard,noauto_da_alloc,errors=panic,data=ordered 0 0
+tmpfs /storage tmpfs rw,seclabel,relatime,mode=755,gid=1000 0 0
+/dev/block/by-name/bootloader /bootloader vfat rw,relatime,uid=1000,gid=1000,fmask=0007,dmask=0007,allow_utime=0020,codepage=437,iocharset=iso8859-1,shortname=lower,errors=remount-ro 0 0
+/data/media /mnt/runtime/default/emulated sdcardfs rw,nosuid,nodev,noexec,noatime,low_uid=1023,low_gid=1023,gid=1015,multi_user,mask=0006 0 0
+/data/media /storage/emulated sdcardfs rw,nosuid,nodev,noexec,noatime,low_uid=1023,low_gid=1023,gid=1015,multi_user,mask=0006 0 0
+/data/media /mnt/runtime/read/emulated sdcardfs rw,nosuid,nodev,noexec,noatime,low_uid=1023,low_gid=1023,gid=9997,multi_user,mask=0027 0 0
+/data/media /mnt/runtime/write/emulated sdcardfs rw,nosuid,nodev,noexec,noatime,low_uid=1023,low_gid=1023,gid=9997,multi_user,mask=0007 0 0
+## i2c devices
+1-002a -> tas5751m
+1-002b -> tas5751m
+i2c-0 -> twi0
+i2c-1 -> twi1
+## leds
+## input devices
+N: Name="axp81x-supplyer"
+N: Name="audiocodec sunxi Audio Jack"
+N: Name="sunxi-ths"
+## sound cards
+ 0 [audiocodec     ]: audiocodec - audiocodec
+                      audiocodec
+ 1 [snddaudio1     ]: snddaudio1 - snddaudio1
+                      snddaudio1
+ 2 [snddaudio0     ]: snddaudio0 - snddaudio0
+                      snddaudio0
+ 3 [sndhdmi        ]: sndhdmi - sndhdmi
+                      sndhdmi
+ 4 [Loopback       ]: Loopback - Loopback
+                      Loopback 1
+## sound pcm
+00-00: SUNXI-CODEC codec-aif1-0 :  : playback 1 : capture 1
+00-01: bb Voice codec-aif2-1 :  : playback 1 : capture 1
+00-02: bb-bt-clk codec-aif2-2 :  : playback 1 : capture 1
+00-03: bt Voice codec-aif3-3 :  : playback 1 : capture 1
+01-00: SUNXI-TDM1 tas5751m-hifi-0 :  : playback 1
+02-00: SUNXI-TDM0 sound.7-0 :  : playback 1 : capture 1
+03-00: SUNXI-HDMIAUDIO sndhdmi-0 :  : playback 1
+04-00: Loopback PCM : Loopback PCM : playback 8 : capture 8
+04-01: Loopback PCM : Loopback PCM : playback 8 : capture 8
+## kernel modules
+hdmi
+snd_aloop
+snd_soc_tas5751m
+snddaudio
+sndhdmi
+sunxi_daudio
+sunxi_snddaudio0
+sunxi_snddaudio1
+sunxi_sndhdmi
+sunxi_tdmhdmi
+## thermal
+soc_thermal=40
+battery=30000
+## quasar version
+3.21
+2.369.5.46.4778391386.20261013.52
+## quasar launch roles
+--fluent-bitd
+--mediad
+--platformd
+--telemetry
+## dmesg (hw chips only)
+===YSE REPORT END===

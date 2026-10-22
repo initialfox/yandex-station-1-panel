@@ -1,0 +1,29 @@
+{
+  "name": "alice-station-gen1",
+  "arch": "aarch64",
+  "device": "tulip-d1",
+  "platform": "yandexstation",
+  "description": "Пакеты Alice Panel только для Яндекс Станции 1 поколения",
+  "packages": [
+    {
+      "name": "zsh",
+      "version": "5.9.2",
+      "arch": "aarch64",
+      "description": "Z shell (static musl)",
+      "url": "packages/zsh/zsh",
+      "md5": "9a801ffaba30aa12c497a9d3994985ce",
+      "size": 1703120,
+      "bin": "zsh"
+    },
+    {
+      "name": "fastfetch",
+      "version": "2.70.0",
+      "arch": "aarch64",
+      "description": "Системная информация в терминале",
+      "url": "packages/fastfetch/fastfetch",
+      "md5": "ced1d946b8022aec2843199455db159d",
+      "size": 1822448,
+      "bin": "fastfetch"
+    }
+  ]
+}

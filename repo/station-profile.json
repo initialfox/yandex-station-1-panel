@@ -1,0 +1,92 @@
+{
+  "model_retail": "Яндекс Станция (1 поколение)",
+  "model": "Station",
+  "device": "tulip-d1",
+  "platform": "yandexstation",
+  "manufacturer": "Yandex",
+  "android": "6.0.1",
+  "sdk": "23",
+  "abi": "arm64-v8a",
+  "hardware": "sun50iw1p1",
+  "display_id": "MOB30J.20261013",
+  "build_date": "Tue Oct 13 16:32:05 MSK 2026",
+  "timezone": "Europe/Moscow",
+  "locale": "ru-RU",
+  "kernel": "Linux localhost 3.10.65 #1 SMP PREEMPT Tue Oct 13 16:32:05 MSK 2026 aarch64",
+  "soc": "Allwinner R18 (sun50iw1)",
+  "board": "tulip-d1",
+  "hdmi": "1920x1080 (androidboot.lcd)",
+  "selinux": "permissive",
+  "cpu": {
+    "cores": 4,
+    "arch": "aarch64",
+    "part": "0xd03",
+    "name": "Cortex-A53",
+    "features": ["fp", "asimd", "aes", "pmull", "sha1", "sha2", "crc32"],
+    "freqs_khz": [480000, 600000, 720000, 816000, 1008000, 1104000, 1152000, 1200000, 1344000]
+  },
+  "memory": {
+    "total_kb": 1002756,
+    "total_human": "980 МБ"
+  },
+  "storage_partitions": [
+    "bootloader", "env", "boot", "system", "verity_block", "misc", "recovery",
+    "cache", "metadata", "private", "frp", "rescue", "tinaos", "rback", "secret",
+    "alog", "lback", "rboot", "media_data", "UDISK(/data)"
+  ],
+  "i2c": [
+    { "addr": "1-002a", "name": "tas5751m" },
+    { "addr": "1-002b", "name": "tas5751m" }
+  ],
+  "amplifiers": "2× TAS5751M (I2S)",
+  "sound_cards": [
+    "audiocodec",
+    "snddaudio1 (TAS5751)",
+    "snddaudio0",
+    "sndhdmi",
+    "Loopback"
+  ],
+  "inputs": [
+    "axp81x-supplyer",
+    "audiocodec sunxi Audio Jack",
+    "sunxi-ths"
+  ],
+  "thermal": {
+    "soc_thermal_c": 40,
+    "battery_raw": 30000
+  },
+  "modules": [
+    "hdmi", "snd_aloop", "snd_soc_tas5751m", "snddaudio", "sndhdmi",
+    "sunxi_daudio", "sunxi_snddaudio0", "sunxi_snddaudio1", "sunxi_sndhdmi", "sunxi_tdmhdmi"
+  ],
+  "quasar": {
+    "vendor_version": "3.21",
+    "software_version": "2.369.5.46.4778391386.20261013.52",
+    "software_revision": "9bfb56ea31763695d7f90d643f760e7d5b0adb27",
+    "apk_package": "ru.yandex.quasar.app",
+    "apk_path": "/system/priv-app/Quasar-Webmusic/Quasar-Webmusic.apk",
+    "apk_version_code": "316309850",
+    "actions_package": "ru.yandex.quasar.actions",
+    "spotter": "alisa",
+    "roles": ["--platformd", "--mediad", "--telemetry", "--fluent-bitd"],
+    "home_activity": "ru.yandex.quasar.app/.MainActivity"
+  },
+  "glagol": {
+    "websocket_active": true,
+    "local_ip": "192.168.1.116",
+    "port": 1961
+  },
+  "ssh": {
+    "port": 9865,
+    "banner": "dropbear_2022.82"
+  },
+  "adb": {
+    "port": 5555
+  },
+  "bins": {
+    "zsh": "/data/local/bin/zsh",
+    "fastfetch": "/data/local/bin/fastfetch"
+  },
+  "panel_target": "Яндекс Станция 1 поколения (YNDX-0001 / tulip-d1)",
+  "snapshot_note": "Снимок для Alice Panel · Станция 1. Серийник/MAC/device-id в UI не светим."
+}

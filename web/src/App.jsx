@@ -1,0 +1,499 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import "@xterm/xterm/css/xterm.css";
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { raw: text };
+  }
+  if (!res.ok) throw new Error(data.error || data.raw || res.statusText);
+  return data;
+}
+
+function fmtBytesKb(kb) {
+  if (kb == null) return "—";
+  if (kb > 1024 * 1024) return `${(kb / 1024 / 1024).toFixed(1)} ГБ`;
+  if (kb > 1024) return `${(kb / 1024).toFixed(0)} МБ`;
+  return `${kb} КБ`;
+}
+
+function fmtUptime(sec) {
+  if (!sec && sec !== 0) return "—";
+  const s = Math.floor(sec);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d) return `${d}д ${h}ч ${m}м`;
+  if (h) return `${h}ч ${m}м`;
+  return `${m}м`;
+}
+
+function Overview({ system, onRefresh }) {
+  const st = system?.station;
+  const live = system?.live;
+  if (!st) return <p className="muted">Нет данных станции…</p>;
+
+  const memPct = live?.memory?.used_pct ?? st.memory?.used_pct ?? 0;
+  const load1 = live?.loadavg?.["1"] ?? 0;
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Обзор</h1>
+          <p>
+            Панель для <strong>Яндекс Станции 1 поколения</strong> ({st.device}) · Android{" "}
+            {st.android} · {st.soc}
+          </p>
+        </div>
+        <button type="button" className="btn ghost" onClick={onRefresh}>
+          Обновить
+        </button>
+      </div>
+
+      <div className="grid stats">
+        <div className="card">
+          <h3>Нагрузка (хост API)</h3>
+          <div className="stat-value">
+            {Number(load1).toFixed(2)}
+            <small>loadavg 1 / 5 / 15: {live?.loadavg?.["1"]?.toFixed?.(2)} · {live?.loadavg?.["5"]?.toFixed?.(2)} · {live?.loadavg?.["15"]?.toFixed?.(2)}</small>
+          </div>
+        </div>
+        <div className="card">
+          <h3>RAM хоста</h3>
+          <div className="stat-value">
+            {memPct}%
+            <small>
+              свободно {fmtBytesKb(live?.memory?.available_kb)} / {fmtBytesKb(live?.memory?.total_kb)}
+            </small>
+          </div>
+          <div className="bar">
+            <i style={{ width: `${Math.min(100, memPct)}%` }} />
+          </div>
+        </div>
+        <div className="card">
+          <h3>RAM станции</h3>
+          <div className="stat-value">
+            {st.memory?.total_human || fmtBytesKb(st.memory?.total_kb)}
+            <small>всего на колонке (снимок)</small>
+          </div>
+        </div>
+        <div className="card">
+          <h3>Uptime хоста</h3>
+          <div className="stat-value">
+            {fmtUptime(live?.uptime_sec)}
+            <small>{live?.host} · {live?.arch}</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ marginTop: "0.9rem" }}>
+        <div className="card">
+          <h2>Прошивка / Quasar</h2>
+          <div className="kv">
+            <div className="kv-row">
+              <span>Quasar software</span>
+              <span>{st.quasar?.software_version}</span>
+            </div>
+            <div className="kv-row">
+              <span>Vendor VERSION</span>
+              <span>{st.quasar?.vendor_version}</span>
+            </div>
+            <div className="kv-row">
+              <span>Revision</span>
+              <span>{st.quasar?.software_revision?.slice?.(0, 12)}…</span>
+            </div>
+            <div className="kv-row">
+              <span>APK</span>
+              <span>{st.quasar?.apk_package}</span>
+            </div>
+            <div className="kv-row">
+              <span>APK path</span>
+              <span>{st.quasar?.apk_path}</span>
+            </div>
+            <div className="kv-row">
+              <span>Roles</span>
+              <span>{(st.quasar?.roles || []).join(" ")}</span>
+            </div>
+            <div className="kv-row">
+              <span>Spotter</span>
+              <span>{st.quasar?.spotter}</span>
+            </div>
+            <div className="kv-row">
+              <span>Build / display</span>
+              <span>{st.display_id}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>Железо</h2>
+          <div className="kv">
+            <div className="kv-row">
+              <span>SoC</span>
+              <span>{st.soc}</span>
+            </div>
+            <div className="kv-row">
+              <span>CPU</span>
+              <span>
+                {st.cpu?.cores}× {st.cpu?.name} ({st.cpu?.arch})
+              </span>
+            </div>
+            <div className="kv-row">
+              <span>Freq</span>
+              <span>
+                {(st.cpu?.freqs_khz || []).map((f) => `${f / 1000}`).join("/")} МГц
+              </span>
+            </div>
+            <div className="kv-row">
+              <span>Усилители</span>
+              <span>{st.amplifiers}</span>
+            </div>
+            <div className="kv-row">
+              <span>Sound</span>
+              <span>{(st.sound_cards || []).join(", ")}</span>
+            </div>
+            <div className="kv-row">
+              <span>HDMI</span>
+              <span>{st.hdmi}</span>
+            </div>
+            <div className="kv-row">
+              <span>Thermal SoC</span>
+              <span>{st.thermal?.soc_thermal_c}°C</span>
+            </div>
+            <div className="kv-row">
+              <span>Kernel</span>
+              <span>3.10.65 · SELinux {st.selinux}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ marginTop: "0.9rem" }}>
+        <div className="card">
+          <h2>Сеть / доступ</h2>
+          <div className="kv">
+            <div className="kv-row">
+              <span>Glagol</span>
+              <span>
+                {st.glagol?.websocket_active ? "active" : "—"} · {st.glagol?.local_ip}:{st.glagol?.port}
+              </span>
+            </div>
+            <div className="kv-row">
+              <span>SSH</span>
+              <span>
+                :{st.ssh?.port} ({st.ssh?.banner})
+              </span>
+            </div>
+            <div className="kv-row">
+              <span>ADB</span>
+              <span>:{st.adb?.port}</span>
+            </div>
+            <div className="kv-row">
+              <span>Locale / TZ</span>
+              <span>
+                {st.locale} · {st.timezone}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>Бинарники на колонке</h2>
+          <div className="kv">
+            {Object.entries(st.bins || {}).map(([k, v]) => (
+              <div className="kv-row" key={k}>
+                <span>{k}</span>
+                <span>{v}</span>
+              </div>
+            ))}
+            <div className="kv-row">
+              <span>Platform</span>
+              <span>{st.platform}</span>
+            </div>
+            <div className="kv-row">
+              <span>ABI</span>
+              <span>{st.abi}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Packages() {
+  const [repo, setRepo] = useState(null);
+  const [installed, setInstalled] = useState({});
+  const [bindir, setBindir] = useState("");
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState("");
+  const [log, setLog] = useState("");
+
+  const refresh = useCallback(async () => {
+    const data = await api("/api/packages");
+    setRepo(data.repo);
+    setInstalled(data.installed || {});
+    setBindir(data.bindir || "");
+  }, []);
+
+  useEffect(() => {
+    refresh().catch((e) => setError(String(e.message || e)));
+  }, [refresh]);
+
+  async function install(name) {
+    setBusy(name);
+    setError("");
+    setLog("");
+    try {
+      const data = await api(`/api/install/${encodeURIComponent(name)}`, { method: "POST" });
+      setLog(`OK ${data.name} → ${data.path}`);
+      await refresh();
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Пакеты</h1>
+          <p>Установка бинарников на колонку</p>
+        </div>
+        <button type="button" className="btn ghost" onClick={() => refresh().catch((e) => setError(String(e.message || e)))}>
+          Обновить
+        </button>
+      </div>
+      {error && <div className="banner err">{error}</div>}
+      {log && <div className="banner ok">{log}</div>}
+      <div className="pkg-list">
+        {repo?.packages?.map((p) => {
+          const on = !!installed[p.name];
+          return (
+            <article key={p.name} className="pkg">
+              <div>
+                <h2>{p.name}</h2>
+                <p>
+                  {p.description}
+                  <br />
+                  <span className="muted mono">
+                    v{p.version} · {(p.size / 1024 / 1024).toFixed(1)} МБ
+                    {on ? " · установлено" : ""}
+                  </span>
+                </p>
+              </div>
+              <button type="button" className="btn" disabled={!!busy} onClick={() => install(p.name)}>
+                {busy === p.name ? "…" : on ? "Переустановить" : "Установить"}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function Shell() {
+  const ref = useRef(null);
+  const termRef = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || termRef.current) return;
+    const term = new Terminal({
+      cursorBlink: true,
+      fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
+      fontSize: 13,
+      theme: {
+        background: "#070b09",
+        foreground: "#d7ebe0",
+        cursor: "#5dcea0",
+        selectionBackground: "#2a4a38",
+      },
+    });
+    const fit = new FitAddon();
+    term.loadAddon(fit);
+    term.open(ref.current);
+    fit.fit();
+    termRef.current = term;
+
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    // на станции панель и API с одного origin; в vite-dev — напрямую :8080
+    const host = import.meta.env.DEV ? "127.0.0.1:8080" : location.host;
+    const ws = new WebSocket(`${proto}://${host}/ws/shell`);
+    ws.binaryType = "arraybuffer";
+    ws.onopen = () => {
+      fit.fit();
+      ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+    };
+    ws.onmessage = (ev) => {
+      term.write(typeof ev.data === "string" ? ev.data : new TextDecoder().decode(ev.data));
+    };
+    ws.onerror = () => term.writeln("\r\n\x1b[31m[ws error]\x1b[0m");
+    ws.onclose = () => term.writeln("\r\n\x1b[31m[disconnected]\x1b[0m");
+    term.onData((data) => {
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: "input", data }));
+    });
+    const onResize = () => {
+      fit.fit();
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ws.close();
+      term.dispose();
+      termRef.current = null;
+    };
+  }, []);
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Терминал</h1>
+          <p>
+            Шелл панели для <strong>Станции 1</strong>. Сейчас локальный WS; на колонке — PTY в
+            alice-httpd.
+          </p>
+        </div>
+      </div>
+      <div className="term-wrap">
+        <div className="term-bar">
+          <span className="term-host">ws://…/ws/shell</span>
+          <span>xterm + zsh/bash хоста</span>
+        </div>
+        <div id="terminal" ref={ref} className="xterm-root" />
+      </div>
+    </>
+  );
+}
+
+function Hardware({ system }) {
+  const st = system?.station;
+  if (!st) return null;
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Железо</h1>
+          <p>Станция 1 (Allwinner R18 / tulip-d1) — снимок YSE с твоей колонки</p>
+        </div>
+      </div>
+      <div className="grid two">
+        <div className="card">
+          <h2>I2C</h2>
+          <table className="proc-table">
+            <thead>
+              <tr>
+                <th>addr</th>
+                <th>name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(st.i2c || []).map((x) => (
+                <tr key={x.addr}>
+                  <td>{x.addr}</td>
+                  <td className="name">{x.name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="card">
+          <h2>Модули ядра</h2>
+          <p className="mono" style={{ margin: 0, lineHeight: 1.6, color: "var(--ink-dim)" }}>
+            {(st.modules || []).join(" · ")}
+          </p>
+        </div>
+        <div className="card">
+          <h2>Разделы</h2>
+          <p className="mono" style={{ margin: 0, lineHeight: 1.6, color: "var(--ink-dim)" }}>
+            {(st.storage_partitions || []).join(" · ")}
+          </p>
+        </div>
+        <div className="card">
+          <h2>Inputs</h2>
+          <p style={{ margin: 0, lineHeight: 1.6, color: "var(--ink-dim)" }}>
+            {(st.inputs || []).join(" · ")}
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function App() {
+  const [tab, setTab] = useState("overview");
+  const [system, setSystem] = useState(null);
+  const [error, setError] = useState("");
+
+  const refresh = useCallback(async () => {
+    setError("");
+    const data = await api("/api/system");
+    setSystem(data);
+  }, []);
+
+  useEffect(() => {
+    refresh().catch((e) => setError(String(e.message || e)));
+  }, [refresh]);
+
+  const title = useMemo(
+    () => ({
+      overview: "Обзор",
+      packages: "Пакеты",
+      shell: "Терминал",
+      hw: "Железо",
+    })[tab],
+    [tab]
+  );
+
+  return (
+    <div className="app">
+      <aside className="nav">
+        <div className="brand">
+          <div className="brand-mark">
+            Alice <span>Panel</span>
+          </div>
+          <div className="brand-sub">Станция 1 · tulip-d1</div>
+        </div>
+        <nav className="nav-links">
+          <button type="button" className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")}>
+            Обзор
+          </button>
+          <button type="button" className={tab === "hw" ? "active" : ""} onClick={() => setTab("hw")}>
+            Железо
+          </button>
+          <button type="button" className={tab === "packages" ? "active" : ""} onClick={() => setTab("packages")}>
+            Пакеты
+          </button>
+          <button type="button" className={tab === "shell" ? "active" : ""} onClick={() => setTab("shell")}>
+            Терминал
+          </button>
+        </nav>
+        <div className="nav-foot">
+          {system?.station?.quasar?.software_version || "…"}
+          <br />
+          {title}
+        </div>
+      </aside>
+      <main className="main">
+        {error && <div className="banner err">{error}</div>}
+        {tab === "overview" && <Overview system={system} onRefresh={() => refresh().catch((e) => setError(String(e.message || e)))} />}
+        {tab === "hw" && <Hardware system={system} />}
+        {tab === "packages" && <Packages />}
+        {tab === "shell" && <Shell />}
+      </main>
+    </div>
+  );
+}
