@@ -123,8 +123,10 @@ app.get("/api/packages", (_req, res) => {
   const repo = loadRepo();
   const installed = {};
   for (const p of repo.packages) {
-    const bin = p.bin || p.name;
-    installed[p.name] = fs.existsSync(path.join(BINDIR, bin));
+    const check =
+      p.check ||
+      (p.kind === "dir" && p.dest ? path.join(p.dest, p.bin || p.name) : path.join(BINDIR, p.bin || p.name));
+    installed[p.name] = fs.existsSync(check);
   }
   res.json({ repo, installed, bindir: BINDIR });
 });
@@ -140,6 +142,26 @@ app.post("/api/install/:name", (req, res) => {
 
   const src = path.join(REPO, pkg.url);
   const bin = pkg.bin || pkg.name;
+
+  if (pkg.kind === "dir") {
+    const dest = pkg.dest || path.join(BINDIR, bin);
+    fs.mkdirSync(dest, { recursive: true });
+    for (const f of fs.readdirSync(src)) {
+      if (f.endsWith("-ssh")) continue;
+      const from = path.join(src, f);
+      if (fs.statSync(from).isDirectory()) continue;
+      fs.copyFileSync(from, path.join(dest, f));
+      fs.chmodSync(path.join(dest, f), 0o755);
+    }
+    const wrap = path.join(src, `${bin}-ssh`);
+    if (fs.existsSync(wrap)) {
+      fs.mkdirSync(BINDIR, { recursive: true });
+      fs.copyFileSync(wrap, path.join(BINDIR, bin));
+      fs.chmodSync(path.join(BINDIR, bin), 0o755);
+    }
+    return res.json({ ok: true, name, path: dest, kind: "dir", version: pkg.version });
+  }
+
   const dst = path.join(BINDIR, bin);
   fs.mkdirSync(BINDIR, { recursive: true });
   fs.copyFileSync(src, dst);

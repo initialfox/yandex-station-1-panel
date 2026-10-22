@@ -14,7 +14,7 @@ cp dist/alice-httpd-linux-arm64 "$STAGE/alice-httpd"
 cp -R web/dist/. "$STAGE/"
 cp VERSION "$STAGE/VERSION"
 cp repo/packages.json repo/station-profile.json "$STAGE/repo/"
-cp -R repo/packages/zsh repo/packages/fastfetch "$STAGE/repo/packages/"
+cp -R repo/packages/zsh repo/packages/fastfetch repo/packages/dropbear "$STAGE/repo/packages/"
 chmod +x "$STAGE/alice-httpd"
 
 export COPYFILE_DISABLE=1

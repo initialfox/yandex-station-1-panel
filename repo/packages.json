@@ -24,6 +24,19 @@
       "md5": "ced1d946b8022aec2843199455db159d",
       "size": 1822448,
       "bin": "fastfetch"
+    },
+    {
+      "name": "dropbear",
+      "version": "2022.82",
+      "arch": "aarch64",
+      "description": "SSH server (musl) → /data/dropbear + dropbearkey",
+      "url": "packages/dropbear",
+      "kind": "dir",
+      "dest": "/data/dropbear",
+      "check": "/data/dropbear/dropbear",
+      "bin": "dropbear",
+      "md5": "be965f9bd221d8d6b13566dcf63dab81",
+      "size": 1981634
     }
   ]
 }

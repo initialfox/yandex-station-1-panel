@@ -30,6 +30,9 @@ type pkgMeta struct {
 	MD5         string `json:"md5"`
 	Size        int64  `json:"size"`
 	Bin         string `json:"bin"`
+	Kind        string `json:"kind"`  // file (default) | dir
+	Dest        string `json:"dest"`  // for dir: install prefix, e.g. /data/dropbear
+	Check       string `json:"check"` // path to detect installed
 }
 
 type repoMeta struct {
@@ -106,11 +109,19 @@ func main() {
 		}
 		installed := map[string]bool{}
 		for _, p := range meta.Packages {
-			bin := p.Bin
-			if bin == "" {
-				bin = p.Name
+			check := p.Check
+			if check == "" {
+				bin := p.Bin
+				if bin == "" {
+					bin = p.Name
+				}
+				if p.Kind == "dir" && p.Dest != "" {
+					check = filepath.Join(p.Dest, bin)
+				} else {
+					check = filepath.Join(*bindir, bin)
+				}
 			}
-			if _, err := os.Stat(filepath.Join(*bindir, bin)); err == nil {
+			if _, err := os.Stat(check); err == nil {
 				installed[p.Name] = true
 			}
 		}
@@ -147,6 +158,29 @@ func main() {
 		if bin == "" {
 			bin = pkg.Name
 		}
+
+		if pkg.Kind == "dir" {
+			dest := pkg.Dest
+			if dest == "" {
+				dest = filepath.Join(*bindir, bin)
+			}
+			if err := installDirPkg(src, dest); err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			// optional PATH wrapper
+			wrapSrc := filepath.Join(src, bin+"-ssh")
+			if st, err := os.Stat(wrapSrc); err == nil && !st.IsDir() {
+				wrapDst := filepath.Join(*bindir, bin)
+				_, _, _ = copyFile(wrapSrc, wrapDst)
+				_ = os.Chmod(wrapDst, 0755)
+			}
+			writeJSON(w, map[string]any{
+				"ok": true, "name": name, "path": dest, "kind": "dir", "version": pkg.Version,
+			})
+			return
+		}
+
 		dst := filepath.Join(*bindir, bin)
 		if err := os.MkdirAll(*bindir, 0755); err != nil {
 			http.Error(w, err.Error(), 500)
@@ -502,6 +536,39 @@ func loadRepo(dir string) (*repoMeta, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+func installDirPkg(srcDir, destDir string) error {
+	st, err := os.Stat(srcDir)
+	if err != nil {
+		return err
+	}
+	if !st.IsDir() {
+		return fmt.Errorf("package is not a directory: %s", srcDir)
+	}
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		// wrappers like dropbear-ssh идут в bindir отдельно
+		if strings.HasSuffix(name, "-ssh") {
+			continue
+		}
+		_, _, err := copyFile(filepath.Join(srcDir, name), filepath.Join(destDir, name))
+		if err != nil {
+			return err
+		}
+		_ = os.Chmod(filepath.Join(destDir, name), 0755)
+	}
+	return nil
 }
 
 func copyFile(src, dst string) (string, int64, error) {
