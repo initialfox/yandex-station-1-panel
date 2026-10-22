@@ -31,16 +31,17 @@ echo "==> Alice Panel · Станция 1"
 echo "    repo=$REPO tag=$TAG"
 echo "    url=$URL"
 
-mkdir -p "$PREFIX" /data/local/tmp "$BINDIR"
-TMP="/data/local/tmp/alice-panel-$$.tar"
+mkdir -p "$PREFIX" "$BINDIR" /sdcard /data/local/tmp 2>/dev/null || true
+# /data/local/tmp иногда недоступен даже root (SELinux) — качаем на /sdcard
+TMP="/sdcard/alice-panel-$$.tar"
 rm -f "$TMP"
 
 download() {
-  # Станция 1: системный curl без CA → SSL verify падает (curl 60)
+  # Станция 1: curl без CA → только -k / --no-check-certificate
   if command -v curl >/dev/null 2>&1; then
-    curl -kfL --retry 3 -o "$TMP" "$URL" || curl -fL --retry 3 -o "$TMP" "$URL"
+    curl -kfL --retry 3 -o "$TMP" "$URL"
   elif command -v wget >/dev/null 2>&1; then
-    wget --no-check-certificate -O "$TMP" "$URL" || wget -O "$TMP" "$URL"
+    wget --no-check-certificate -O "$TMP" "$URL"
   else
     echo "нужен curl или wget" >&2
     exit 1

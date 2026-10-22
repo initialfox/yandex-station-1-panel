@@ -8,11 +8,9 @@
 
 ## Установка
 
-Одна и та же команда — крутится **на колонке**. `-k` нужен: у curl нет CA.
+Одна команда на колонке. `-k` — у curl нет CA.
 
-### SSH
-
-Зашёл на колонку и:
+### SSH (уже root)
 
 ```sh
 curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh
@@ -20,14 +18,12 @@ curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/
 
 ### ADB
 
-С компа:
-
 ```bash
 adb connect 192.168.1.116:5555
-adb shell "curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh"
+adb shell "su 0 sh -c 'curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh'"
 ```
 
-Всё. Скрипт сам скачает релиз, распакует в `/data/local/alice-panel` и запустит.
+(`su 0` — adb по умолчанию не root на Станции 1.)
 
 Рестарт: `sh /data/local/alice-panel/start.sh`
 
