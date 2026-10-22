@@ -2,9 +2,9 @@
 
 Веб-панель для **Яндекс Станции 1 поколения** (`tulip-d1` / `yandexstation` / aarch64).
 
-Один бинарь `alice-httpd` на колонке, без Node.
+Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.2.0**.
 
-![Установка по SSH](docs/install-ssh.png)
+![Обзор панели](docs/panel-overview.png)
 
 ---
 
@@ -26,6 +26,10 @@
 - Инфо по HDMI (разрешение, state, fps, яркость)
 - **Снимки экрана** через `screencap` (framebuffer 1920×1080)
 
+![Дисплей](docs/panel-display.png)
+
+![Снимок HDMI](docs/hdmi-screenshot.png)
+
 ### Пакеты
 - Установка aarch64-бинарников в `/data/local/bin`
 - **zsh** ставится сразу при установке панели
@@ -37,7 +41,7 @@
 ### Автообновление
 - При открытии панели проверяется GitHub Releases
 - Если есть новая версия — баннер и кнопка **Обновить**
-- Обновление само переустанавливает панель на колонке
+- Обновление само переустанавливает панель на колонке (`install.sh`)
 
 Файлы: `/data/local/alice-panel/` · лог: `httpd.log` · рестарт: `sh /data/local/alice-panel/start.sh`
 
@@ -57,8 +61,9 @@ https://t.me/c/4457409211/1710/6152
 curl -kfsSL https://cdn.jsdelivr.net/gh/initialfox/yandex-station-1-panel@main/install.sh | sh
 ```
 
-`-k` обязателен: у системного curl нет CA.  
-Скрипт скачает релиз, поставит **zsh**, запустит панель.
+`-k` обязателен: у системного curl нет CA.
+
+![Установка по SSH](docs/install-ssh.png)
 
 ### После установки
 
