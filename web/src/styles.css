@@ -288,6 +288,23 @@ code,
   gap: 0.75rem;
 }
 
+.pkg-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: stretch;
+  min-width: 9.5rem;
+}
+
+.btn.danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+}
+
+.btn.danger:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
 .pkg {
   display: flex;
   align-items: center;
@@ -476,6 +493,97 @@ code,
   color: var(--ink);
 }
 
+.led-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) 1fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.led-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.led-field {
+  display: block;
+}
+
+.led-field > span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--ink-dim);
+  font-size: 0.86rem;
+}
+
+.led-field select,
+.led-field input[type="color"],
+.led-field input[type="range"] {
+  width: 100%;
+  color: inherit;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+}
+
+.led-field input[type="color"] {
+  height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.led-field input[type="range"] {
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.led-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.led-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink-dim);
+  font-size: 0.92rem;
+}
+
+.led-check input {
+  accent-color: var(--accent);
+}
+
+.led-builtin {
+  margin-top: 0.35rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.led-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.led-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.led-preview canvas {
+  width: min(100%, 460px);
+  height: auto;
+}
+
 @media (max-width: 980px) {
   .app {
     grid-template-columns: 1fr;
@@ -496,6 +604,10 @@ code,
   .grid.stats,
   .grid.two {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .led-layout {
+    grid-template-columns: 1fr;
   }
 }
 

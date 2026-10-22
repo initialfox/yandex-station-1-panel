@@ -182,10 +182,20 @@ func listLEDPatterns() ([]string, error) {
 	return names, nil
 }
 
+func ledUtilAvailable() bool {
+	st, err := os.Stat(ledUtil)
+	return err == nil && !st.IsDir()
+}
+
 func registerLED(mux *http.ServeMux) {
 	mux.HandleFunc("/api/led/status", func(w http.ResponseWriter, r *http.Request) {
 		pid := ledReadPID()
-		writeJSON(w, map[string]any{"pid": pid, "alive": ledAlive(pid)})
+		writeJSON(w, map[string]any{
+			"pid":       pid,
+			"alive":     ledAlive(pid),
+			"available": ledUtilAvailable(),
+			"util":      ledUtil,
+		})
 	})
 	mux.HandleFunc("/api/led/patterns", func(w http.ResponseWriter, r *http.Request) {
 		names, err := listLEDPatterns()
@@ -198,6 +208,10 @@ func registerLED(mux *http.ServeMux) {
 	mux.HandleFunc("/api/led/play", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", 405)
+			return
+		}
+		if !ledUtilAvailable() {
+			http.Error(w, "подсветка недоступна на этом устройстве", 404)
 			return
 		}
 		var body struct {
@@ -235,6 +249,10 @@ func registerLED(mux *http.ServeMux) {
 	mux.HandleFunc("/api/led/builtin", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", 405)
+			return
+		}
+		if !ledUtilAvailable() {
+			http.Error(w, "подсветка недоступна на этом устройстве", 404)
 			return
 		}
 		var body struct {

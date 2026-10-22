@@ -2,7 +2,7 @@
 
 Веб-панель для **Яндекс Станции 1 поколения** (`tulip-d1` / `yandexstation` / aarch64).
 
-Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.4.0**.
+Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.4.1**.
 
 Пакеты ставятся через **[apkg](https://github.com/initialfox/yandex-station-repo)** (удалённый индекс). Локального `repo/packages` в панели больше нет — если `apkg` отсутствует, панель скачивает его сама.
 
@@ -34,12 +34,14 @@
 - Каталог с GitHub: [yandex-station-repo](https://github.com/initialfox/yandex-station-repo)
 - Установка в `/data/local/bin` (Android) или `/usr/local/bin` (buildroot)
 - При установке панели: `apkg` + **zsh**
-- В UI: список из remote `packages.json`, кнопка ставит через `apkg install`
+- В UI: список из remote `packages.json`, установка и **удаление** через `apkg`
 
 ![Пакеты](docs/panel-packages.png)
 
-### LED
-- Управление кольцом через `led_util` (локально на колонке, без ADB)
+### Подсветка (только Станция 1)
+- Вкладка в панели: анимации из `station-led.py` + встроенные `.led`
+- Показывается только при `tulip-d1` / Gen1 **и** наличии `/system/vendor/quasar/led_util`
+- На других колонках пункт меню скрыт; API play/builtin отвечают 404
 
 ### Терминал
 - Веб-шелл в браузере (xterm + PTY)

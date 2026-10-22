@@ -7,7 +7,7 @@
 # Пакеты (zsh, curl, …) — через apkg (yandex-station-repo), не из локального repo панели.
 #
 # Опционально зафиксировать релиз:
-#   PANEL_TAG=v0.4.0 sh install.sh
+#   PANEL_TAG=v0.4.1 sh install.sh
 
 set -e
 

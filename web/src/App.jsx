@@ -261,12 +261,28 @@ function Packages() {
   }, [refresh]);
 
   async function install(name) {
-    setBusy(name);
+    setBusy(`install:${name}`);
     setError("");
     setLog("");
     try {
       const data = await api(`/api/install/${encodeURIComponent(name)}`, { method: "POST" });
       setLog(`apkg install ${data.name}\n${data.log || ""}`.trim());
+      await refresh();
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(name) {
+    if (!window.confirm(`Удалить пакет «${name}»?`)) return;
+    setBusy(`remove:${name}`);
+    setError("");
+    setLog("");
+    try {
+      const data = await api(`/api/remove/${encodeURIComponent(name)}`, { method: "POST" });
+      setLog(`apkg remove ${data.name}\n${data.log || ""}`.trim());
       await refresh();
     } catch (e) {
       setError(String(e.message || e));
@@ -297,6 +313,8 @@ function Packages() {
         {repo?.packages?.map((p) => {
           const on = !!installed[p.name];
           const mb = p.size ? (p.size / 1024 / 1024).toFixed(1) : "?";
+          const installing = busy === `install:${p.name}`;
+          const removing = busy === `remove:${p.name}`;
           return (
             <article key={p.name} className="pkg">
               <div>
@@ -311,9 +329,16 @@ function Packages() {
                   </span>
                 </p>
               </div>
-              <button type="button" className="btn" disabled={!!busy} onClick={() => install(p.name)}>
-                {busy === p.name ? "apkg…" : on ? "Переустановить" : "Установить"}
-              </button>
+              <div className="pkg-actions">
+                <button type="button" className="btn" disabled={!!busy} onClick={() => install(p.name)}>
+                  {installing ? "apkg…" : on ? "Переустановить" : "Установить"}
+                </button>
+                {on && (
+                  <button type="button" className="btn ghost danger" disabled={!!busy} onClick={() => remove(p.name)}>
+                    {removing ? "удаляю…" : "Удалить"}
+                  </button>
+                )}
+              </div>
             </article>
           );
         })}
@@ -585,6 +610,392 @@ function Display() {
   );
 }
 
+const LED_N = 24;
+
+function hexToRgb(hex) {
+  const h = String(hex || "").replace("#", "");
+  return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0];
+}
+function rgbToHex(r, g, b) {
+  const c = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+  return c(r) + c(g) + c(b);
+}
+function scaleRgb(rgb, k) {
+  return rgb.map((v) => v * k);
+}
+function mixRgb(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+function hsv(h, s, v) {
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = v * (1 - s);
+  const q = v * (1 - f * s);
+  const t = v * (1 - (1 - f) * s);
+  let r;
+  let g;
+  let b;
+  switch (i % 6) {
+    case 0:
+      r = v;
+      g = t;
+      b = p;
+      break;
+    case 1:
+      r = q;
+      g = v;
+      b = p;
+      break;
+    case 2:
+      r = p;
+      g = v;
+      b = t;
+      break;
+    case 3:
+      r = p;
+      g = q;
+      b = v;
+      break;
+    case 4:
+      r = t;
+      g = p;
+      b = v;
+      break;
+    default:
+      r = v;
+      g = p;
+      b = q;
+  }
+  return [r * 255, g * 255, b * 255];
+}
+function solidFrame(rgb, k) {
+  return Array.from({ length: LED_N }, () => rgbToHex(...scaleRgb(rgb, k)));
+}
+
+function makeLedFrames(kind, c1, c2, ms, bright, tail) {
+  const A = hexToRgb(c1);
+  const B = hexToRgb(c2);
+  const k = bright / 100;
+  const frames = [];
+  if (kind === "solid") {
+    frames.push({ colors: solidFrame(A, k), ms: 1000 });
+  } else if (kind === "off") {
+    frames.push({ colors: solidFrame([0, 0, 0], 1), ms: 1000 });
+  } else if (kind === "breathe") {
+    for (let i = 0; i < 40; i++) {
+      const t = 0.12 + 0.88 * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / 40));
+      frames.push({ colors: solidFrame(A, k * t), ms });
+    }
+  } else if (kind === "rainbow") {
+    for (let i = 0; i < 36; i++) {
+      const colors = [];
+      for (let l = 0; l < LED_N; l++) {
+        colors.push(rgbToHex(...scaleRgb(hsv((i / 36 + l / LED_N) % 1, 1, 1), k)));
+      }
+      frames.push({ colors, ms });
+    }
+  } else if (kind === "chase") {
+    for (let i = 0; i < LED_N; i++) {
+      const colors = [];
+      for (let l = 0; l < LED_N; l++) {
+        const d = (i - l + LED_N) % LED_N;
+        const f = d < tail ? 1 - d / tail : 0;
+        colors.push(rgbToHex(...scaleRgb(mixRgb(B, A, f), k)));
+      }
+      frames.push({ colors, ms });
+    }
+  } else if (kind === "gradient") {
+    for (let i = 0; i < 36; i++) {
+      const colors = [];
+      for (let l = 0; l < LED_N; l++) {
+        const t = 0.5 - 0.5 * Math.cos(2 * Math.PI * ((l / LED_N + i / 36) % 1));
+        colors.push(rgbToHex(...scaleRgb(mixRgb(A, B, t), k)));
+      }
+      frames.push({ colors, ms });
+    }
+  } else if (kind === "blink") {
+    const hold = Math.max(ms * 4, 200);
+    frames.push({ colors: solidFrame(A, k), ms: hold });
+    frames.push({ colors: solidFrame([0, 0, 0], 1), ms: hold });
+  } else if (kind === "police") {
+    const red = [];
+    const blue = [];
+    for (let l = 0; l < LED_N; l++) {
+      red.push(l < LED_N / 2 ? rgbToHex(...scaleRgb([255, 0, 0], k)) : "000000");
+      blue.push(l >= LED_N / 2 ? rgbToHex(...scaleRgb([0, 0, 255], k)) : "000000");
+    }
+    frames.push({ colors: red, ms: 300 });
+    frames.push({ colors: blue, ms: 300 });
+  } else if (kind === "candle") {
+    for (let i = 0; i < 24; i++) {
+      const colors = [];
+      for (let l = 0; l < LED_N; l++) {
+        colors.push(rgbToHex(...scaleRgb(A, k * (0.55 + 0.45 * Math.random()))));
+      }
+      frames.push({ colors, ms: Math.max(ms, 40) });
+    }
+  } else if (kind === "pulse") {
+    for (let i = 0; i < 30; i++) {
+      const ph = (i % 10) / 10;
+      const t = ph < 0.5 ? ph * 2 : (1 - ph) * 2;
+      frames.push({ colors: solidFrame(A, k * (0.1 + 0.9 * t)), ms: 40 });
+    }
+  }
+  return frames;
+}
+
+function isStationGen1(system) {
+  const st = system?.station;
+  if (!st) return false;
+  if (st.device === "tulip-d1" || st.board === "tulip-d1") return true;
+  if (st.platform === "yandexstation" && String(st.model || "").toLowerCase() === "station") return true;
+  return /1\s*поколен/i.test(st.model_retail || "");
+}
+
+function LedPanel() {
+  const canvasRef = useRef(null);
+  const previewGen = useRef(0);
+  const [anim, setAnim] = useState("breathe");
+  const [c1, setC1] = useState("#00e5ff");
+  const [c2, setC2] = useState("#ff2d55");
+  const [speed, setSpeed] = useState(60);
+  const [bright, setBright] = useState(100);
+  const [tail, setTail] = useState(5);
+  const [smooth, setSmooth] = useState(true);
+  const [patterns, setPatterns] = useState([]);
+  const [builtin, setBuiltin] = useState("");
+  const [status, setStatus] = useState("готов");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const drawRing = useCallback((colors) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const R = Math.min(w, h) * 0.38;
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = "rgba(140, 180, 155, 0.28)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < LED_N; i++) {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / LED_N;
+      const x = cx + Math.cos(a) * R;
+      const y = cy + Math.sin(a) * R;
+      ctx.beginPath();
+      ctx.arc(x, y, 13, 0, Math.PI * 2);
+      ctx.fillStyle = `#${colors[i] || "000000"}`;
+      ctx.fill();
+      ctx.strokeStyle = "#0b0d12";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }, []);
+
+  const startPreview = useCallback(
+    (frames) => {
+      const gen = ++previewGen.current;
+      let i = 0;
+      const tick = () => {
+        if (gen !== previewGen.current || !frames.length) return;
+        const frame = frames[i % frames.length];
+        drawRing(frame.colors);
+        i += 1;
+        setTimeout(tick, Math.max(10, frame.ms || 40));
+      };
+      tick();
+    },
+    [drawRing]
+  );
+
+  const frames = useMemo(
+    () => makeLedFrames(anim, c1, c2, speed, bright, tail),
+    [anim, c1, c2, speed, bright, tail]
+  );
+
+  useEffect(() => {
+    startPreview(frames);
+    return () => {
+      previewGen.current += 1;
+    };
+  }, [frames, startPreview]);
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      const data = await api("/api/led/status");
+      setStatus(data.alive ? `играет, pid ${data.pid}` : "остановлено");
+    } catch {
+      /* keep */
+    }
+  }, []);
+
+  useEffect(() => {
+    api("/api/led/patterns")
+      .then((data) => {
+        const list = data.patterns || [];
+        setPatterns(list);
+        setBuiltin((cur) => cur || list[0] || "");
+      })
+      .catch((e) => setError(String(e.message || e)));
+    refreshStatus();
+    const t = setInterval(refreshStatus, 5000);
+    return () => clearInterval(t);
+  }, [refreshStatus]);
+
+  async function play() {
+    setBusy(true);
+    setError("");
+    try {
+      startPreview(frames);
+      const smoothMs = smooth ? Math.min(120, speed) : 0;
+      setStatus("отправка…");
+      const data = await api("/api/led/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ frames, smooth: smoothMs }),
+      });
+      setStatus(`играет, pid ${data.pid}`);
+    } catch (e) {
+      setError(String(e.message || e));
+      setStatus(`ошибка: ${e.message || e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stopLed() {
+    setBusy(true);
+    setError("");
+    try {
+      await api("/api/led/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      setStatus("остановлено");
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function playBuiltin() {
+    if (!builtin) return;
+    setBusy(true);
+    setError("");
+    try {
+      setStatus(`запуск ${builtin}…`);
+      const data = await api("/api/led/builtin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: builtin }),
+      });
+      setStatus(`играет ${builtin}, pid ${data.pid}`);
+    } catch (e) {
+      setError(String(e.message || e));
+      setStatus(`ошибка: ${e.message || e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Подсветка</h1>
+          <p>Кольцо Станции 1 · led_util · {status}</p>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="btn" disabled={busy} onClick={play}>
+            {busy ? "…" : "Играть"}
+          </button>
+          <button type="button" className="btn ghost" disabled={busy} onClick={stopLed}>
+            Стоп
+          </button>
+        </div>
+      </div>
+      {error && <div className="banner err">{error}</div>}
+      <div className="led-layout">
+        <div className="card led-controls">
+          <label className="led-field">
+            <span>Анимация</span>
+            <select value={anim} onChange={(e) => setAnim(e.target.value)}>
+              <option value="solid">Сплошной цвет</option>
+              <option value="breathe">Дыхание</option>
+              <option value="rainbow">Радуга</option>
+              <option value="chase">Бегущий огонь</option>
+              <option value="gradient">Градиент</option>
+              <option value="blink">Мигание</option>
+              <option value="police">Полиция</option>
+              <option value="candle">Свеча</option>
+              <option value="pulse">Импульс</option>
+              <option value="off">Выключить</option>
+            </select>
+          </label>
+          <div className="led-row">
+            <label className="led-field">
+              <span>Основной</span>
+              <input type="color" value={c1} onChange={(e) => setC1(e.target.value)} />
+            </label>
+            <label className="led-field">
+              <span>Второй</span>
+              <input type="color" value={c2} onChange={(e) => setC2(e.target.value)} />
+            </label>
+          </div>
+          <label className="led-field">
+            <span>
+              Скорость: <b>{speed}</b> мс/кадр
+            </span>
+            <input type="range" min={10} max={500} step={10} value={speed} onChange={(e) => setSpeed(+e.target.value)} />
+          </label>
+          <label className="led-field">
+            <span>
+              Яркость: <b>{bright}</b>%
+            </span>
+            <input type="range" min={5} max={100} value={bright} onChange={(e) => setBright(+e.target.value)} />
+          </label>
+          <label className="led-field">
+            <span>
+              Хвост: <b>{tail}</b>
+            </span>
+            <input type="range" min={1} max={12} value={tail} onChange={(e) => setTail(+e.target.value)} />
+          </label>
+          <label className="led-check">
+            <input type="checkbox" checked={smooth} onChange={(e) => setSmooth(e.target.checked)} />
+            Плавные переходы
+          </label>
+          <div className="led-builtin">
+            <label className="led-field">
+              <span>Встроенный паттерн</span>
+              <select value={builtin} onChange={(e) => setBuiltin(e.target.value)}>
+                {patterns.map((name) => (
+                  <option key={name} value={name}>
+                    {name.replace(/\.led$/, "")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="btn ghost" disabled={busy || !builtin} onClick={playBuiltin}>
+              Играть встроенный
+            </button>
+          </div>
+          <p className="muted led-hint">Пока играет led_util, кольцо твоё. После «Стоп» maind вернёт своё состояние.</p>
+        </div>
+        <div className="card led-preview">
+          <canvas ref={canvasRef} width={460} height={460} aria-label="Превью кольца" />
+        </div>
+      </div>
+    </>
+  );
+}
+
 function UpdateBanner({ update, onUpdated }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -654,6 +1065,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [update, setUpdate] = useState(null);
   const [version, setVersion] = useState("");
+  const [ledAvailable, setLedAvailable] = useState(false);
 
   const refresh = useCallback(async () => {
     setError("");
@@ -672,10 +1084,35 @@ export default function App() {
     }
   }, []);
 
+  const station1 = isStationGen1(system);
+  const showLed = station1 && ledAvailable;
+
   useEffect(() => {
     refresh().catch((e) => setError(String(e.message || e)));
     checkUpdates();
   }, [refresh, checkUpdates]);
+
+  useEffect(() => {
+    if (!station1) {
+      setLedAvailable(false);
+      return;
+    }
+    let cancelled = false;
+    api("/api/led/status")
+      .then((d) => {
+        if (!cancelled) setLedAvailable(!!d.available);
+      })
+      .catch(() => {
+        if (!cancelled) setLedAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [station1]);
+
+  useEffect(() => {
+    if (tab === "led" && !showLed) setTab("overview");
+  }, [tab, showLed]);
 
   const title = useMemo(
     () =>
@@ -685,6 +1122,7 @@ export default function App() {
         shell: "Терминал",
         hw: "Железо",
         display: "Дисплей",
+        led: "Подсветка",
       })[tab],
     [tab]
   );
@@ -708,6 +1146,11 @@ export default function App() {
           <button type="button" className={tab === "display" ? "active" : ""} onClick={() => setTab("display")}>
             Дисплей
           </button>
+          {showLed && (
+            <button type="button" className={tab === "led" ? "active" : ""} onClick={() => setTab("led")}>
+              Подсветка
+            </button>
+          )}
           <button type="button" className={tab === "packages" ? "active" : ""} onClick={() => setTab("packages")}>
             Пакеты
           </button>
@@ -727,6 +1170,7 @@ export default function App() {
         {tab === "overview" && <Overview system={system} onRefresh={() => refresh().catch((e) => setError(String(e.message || e)))} />}
         {tab === "hw" && <Hardware system={system} />}
         {tab === "display" && <Display />}
+        {tab === "led" && showLed && <LedPanel />}
         {tab === "packages" && <Packages />}
         {tab === "shell" && <Shell />}
       </main>
