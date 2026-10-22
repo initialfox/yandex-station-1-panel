@@ -2,8 +2,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -28,12 +26,14 @@ type pkgMeta struct {
 	Arch        string `json:"arch"`
 	Description string `json:"description"`
 	URL         string `json:"url"`
+	Asset       string `json:"asset"`
 	MD5         string `json:"md5"`
 	Size        int64  `json:"size"`
 	Bin         string `json:"bin"`
-	Kind        string `json:"kind"`  // file (default) | dir
-	Dest        string `json:"dest"`  // for dir: install prefix, e.g. /data/dropbear
-	Check       string `json:"check"` // path to detect installed
+	Kind        string `json:"kind"`     // file (default) | dir
+	Dest        string `json:"dest"`     // for dir: install prefix, e.g. /data/dropbear
+	Check       string `json:"check"`    // path to detect installed
+	Category    string `json:"category"` // optional (apkg index)
 }
 
 type repoMeta struct {
@@ -50,30 +50,48 @@ const defaultUpdateRepo = "initialfox/yandex-station-1-panel"
 func main() {
 	addr := flag.String("listen", ":8080", "listen address")
 	root := flag.String("root", ".", "web root (index.html + assets)")
-	repo := flag.String("repo", "", "repo dir with packages.json")
-	bindir := flag.String("bindir", "/data/local/bin", "install target")
+	profile := flag.String("profile", "", "dir with station-profile.json (optional)")
+	// -repo оставлен для совместимости со старыми start.sh → читаем только profile
+	_ = flag.String("repo", "", "deprecated: ignored (packages via apkg)")
+	bindirFlag := flag.String("bindir", "", "install target (auto: android/buildroot)")
 	shellPath := flag.String("shell", "", "shell binary (default: zsh in bindir or /system/bin/sh)")
 	flag.Parse()
 
 	panelRoot, _ := filepath.Abs(*root)
 	version := readVersion(panelRoot)
+	flavor := detectFlavor()
 
-	repoDir := *repo
-	if repoDir == "" {
-		if st, err := os.Stat(filepath.Join(*root, "repo", "packages.json")); err == nil && !st.IsDir() {
-			repoDir = filepath.Join(*root, "repo")
-		} else {
-			repoDir = *root
+	bindir := *bindirFlag
+	if bindir == "" {
+		bindir = defaultBindir(flavor)
+	}
+
+	profileDir := *profile
+	if profileDir == "" {
+		for _, c := range []string{
+			filepath.Join(*root, "repo"),
+			filepath.Join(*root, "profile"),
+			*root,
+		} {
+			if st, err := os.Stat(filepath.Join(c, "station-profile.json")); err == nil && !st.IsDir() {
+				profileDir = c
+				break
+			}
+		}
+		if profileDir == "" {
+			profileDir = *root
 		}
 	}
 
 	shell := *shellPath
 	if shell == "" {
-		cand := filepath.Join(*bindir, "zsh")
+		cand := filepath.Join(bindir, "zsh")
 		if _, err := os.Stat(cand); err == nil {
 			shell = cand
-		} else {
+		} else if flavor == "android" {
 			shell = "/system/bin/sh"
+		} else {
+			shell = "/bin/sh"
 		}
 	}
 
@@ -82,7 +100,8 @@ func main() {
 		writeJSON(w, map[string]any{
 			"ok": true, "role": "alice-panel",
 			"target": "yandex-station-gen1", "device": "tulip-d1", "platform": "yandexstation",
-			"version": version,
+			"version": version, "flavor": flavor, "bindir": bindir,
+			"packages": "apkg",
 		})
 	})
 	mux.HandleFunc("/api/update/check", func(w http.ResponseWriter, r *http.Request) {
@@ -100,33 +119,26 @@ func main() {
 		writeJSON(w, map[string]any{"ok": true, "updating": true, "message": "переустановка запущена"})
 	})
 	mux.HandleFunc("/api/system", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, buildSystem(repoDir))
+		writeJSON(w, buildSystem(profileDir))
 	})
 	mux.HandleFunc("/api/packages", func(w http.ResponseWriter, r *http.Request) {
-		meta, err := loadRepo(repoDir)
+		apkgPath, _ := ensureApkg(bindir)
+		meta, err := fetchRemotePackages()
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			http.Error(w, "apkg index: "+err.Error(), 502)
 			return
 		}
 		installed := map[string]bool{}
 		for _, p := range meta.Packages {
-			check := p.Check
-			if check == "" {
-				bin := p.Bin
-				if bin == "" {
-					bin = p.Name
-				}
-				if p.Kind == "dir" && p.Dest != "" {
-					check = filepath.Join(p.Dest, bin)
-				} else {
-					check = filepath.Join(*bindir, bin)
-				}
-			}
-			if _, err := os.Stat(check); err == nil {
+			if packageInstalled(p, bindir) {
 				installed[p.Name] = true
 			}
 		}
-		writeJSON(w, map[string]any{"repo": meta, "installed": installed, "bindir": *bindir})
+		writeJSON(w, map[string]any{
+			"repo": meta, "installed": installed, "bindir": bindir,
+			"source": "apkg", "apkg": apkgPath, "apkg_present": apkgPath != "",
+			"flavor": flavor, "index_url": apkgIndexURL,
+		})
 	})
 	mux.HandleFunc("/api/install/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -138,76 +150,43 @@ func main() {
 			http.Error(w, "bad name", 400)
 			return
 		}
-		meta, err := loadRepo(repoDir)
+		apkgPath, err := ensureApkg(bindir)
+		if err != nil {
+			http.Error(w, "apkg: "+err.Error(), 500)
+			return
+		}
+		upd, _ := apkgUpdate(apkgPath)
+		out, err := apkgInstall(apkgPath, name)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		var pkg *pkgMeta
-		for i := range meta.Packages {
-			if meta.Packages[i].Name == name {
-				pkg = &meta.Packages[i]
-				break
-			}
-		}
-		if pkg == nil {
-			http.Error(w, "package not found", 404)
-			return
-		}
-		src := filepath.Join(repoDir, filepath.FromSlash(pkg.URL))
-		bin := pkg.Bin
-		if bin == "" {
-			bin = pkg.Name
-		}
-
-		if pkg.Kind == "dir" {
-			dest := pkg.Dest
-			if dest == "" {
-				dest = filepath.Join(*bindir, bin)
-			}
-			if err := installDirPkg(src, dest); err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			// PATH wrapper: name-run или name-ssh → /data/local/bin/name
-			if err := os.MkdirAll(*bindir, 0755); err == nil {
-				for _, wrap := range []string{bin + "-run", bin + "-ssh"} {
-					wrapSrc := filepath.Join(src, wrap)
-					if st, err := os.Stat(wrapSrc); err == nil && !st.IsDir() {
-						wrapDst := filepath.Join(*bindir, bin)
-						_, _, _ = copyFile(wrapSrc, wrapDst)
-						_ = os.Chmod(wrapDst, 0755)
-						tryXbinLink(wrapDst, bin)
-						break
-					}
-				}
-			}
-			writeJSON(w, map[string]any{
-				"ok": true, "name": name, "path": dest, "kind": "dir", "version": pkg.Version,
-			})
-			return
-		}
-
-		dst := filepath.Join(*bindir, bin)
-		if err := os.MkdirAll(*bindir, 0755); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		sum, size, err := copyFile(src, dst)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		if pkg.MD5 != "" && !strings.EqualFold(sum, pkg.MD5) {
-			_ = os.Remove(dst)
-			http.Error(w, fmt.Sprintf("md5 mismatch: got %s want %s", sum, pkg.MD5), 500)
-			return
-		}
-		_ = os.Chmod(dst, 0755)
-		tryXbinLink(dst, bin)
 		writeJSON(w, map[string]any{
-			"ok": true, "name": name, "path": dst, "md5": sum, "size": size, "version": pkg.Version,
+			"ok": true, "name": name, "path": bindir,
+			"via": "apkg", "log": out, "update": upd, "apkg": apkgPath,
 		})
+	})
+	mux.HandleFunc("/api/remove/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", 405)
+			return
+		}
+		name := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/remove/"), "/")
+		if name == "" || strings.Contains(name, "..") || strings.Contains(name, "/") {
+			http.Error(w, "bad name", 400)
+			return
+		}
+		apkgPath, err := ensureApkg(bindir)
+		if err != nil {
+			http.Error(w, "apkg: "+err.Error(), 500)
+			return
+		}
+		out, err := apkgRemove(apkgPath, name)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, map[string]any{"ok": true, "name": name, "via": "apkg", "log": out})
 	})
 
 	mux.HandleFunc("/ws/shell", func(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +212,8 @@ func main() {
 		_, _ = w.Write(png)
 	})
 
-	mux.Handle("/packages/", http.StripPrefix("/packages/", http.FileServer(http.Dir(filepath.Join(repoDir, "packages")))))
+	registerLED(mux)
+
 	fileServer := http.FileServer(http.Dir(*root))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		p := filepath.Join(*root, filepath.Clean("/"+r.URL.Path))
@@ -246,7 +226,8 @@ func main() {
 		http.ServeFile(w, r, filepath.Join(*root, "index.html"))
 	})
 
-	log.Printf("Alice Panel · Станция 1 v%s listen=%s root=%s repo=%s shell=%s", version, *addr, *root, repoDir, shell)
+	log.Printf("Alice Panel · Станция 1 v%s flavor=%s listen=%s root=%s bindir=%s shell=%s packages=apkg",
+		version, flavor, *addr, *root, bindir, shell)
 	log.Fatal(http.ListenAndServe(*addr, mux))
 }
 
@@ -613,100 +594,6 @@ func readFile(p string) string {
 	return string(b)
 }
 
-func loadRepo(dir string) (*repoMeta, error) {
-	b, err := os.ReadFile(filepath.Join(dir, "packages.json"))
-	if err != nil {
-		return nil, err
-	}
-	var m repoMeta
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, err
-	}
-	return &m, nil
-}
-
-func installDirPkg(srcDir, destDir string) error {
-	st, err := os.Stat(srcDir)
-	if err != nil {
-		return err
-	}
-	if !st.IsDir() {
-		return fmt.Errorf("package is not a directory: %s", srcDir)
-	}
-	if err := os.MkdirAll(destDir, 0755); err != nil {
-		return err
-	}
-	return copyTree(srcDir, destDir)
-}
-
-func copyTree(srcDir, destDir string) error {
-	entries, err := os.ReadDir(srcDir)
-	if err != nil {
-		return err
-	}
-	for _, e := range entries {
-		name := e.Name()
-		// wrappers *-ssh / *-run ставятся в bindir отдельно
-		if strings.HasSuffix(name, "-ssh") || strings.HasSuffix(name, "-run") {
-			continue
-		}
-		src := filepath.Join(srcDir, name)
-		dst := filepath.Join(destDir, name)
-		if e.IsDir() {
-			if err := os.MkdirAll(dst, 0755); err != nil {
-				return err
-			}
-			if err := copyTree(src, dst); err != nil {
-				return err
-			}
-			continue
-		}
-		_, _, err := copyFile(src, dst)
-		if err != nil {
-			return err
-		}
-		_ = os.Chmod(dst, 0755)
-	}
-	return nil
-}
-
-func copyFile(src, dst string) (string, int64, error) {
-	in, err := os.Open(src)
-	if err != nil {
-		return "", 0, err
-	}
-	defer in.Close()
-	tmp := dst + ".tmp"
-	out, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
-	if err != nil {
-		return "", 0, err
-	}
-	h := md5.New()
-	n, err := io.Copy(io.MultiWriter(out, h), in)
-	cerr := out.Close()
-	if err != nil {
-		_ = os.Remove(tmp)
-		return "", 0, err
-	}
-	if cerr != nil {
-		_ = os.Remove(tmp)
-		return "", 0, cerr
-	}
-	if err := os.Rename(tmp, dst); err != nil {
-		_ = os.Remove(tmp)
-		return "", 0, err
-	}
-	return hex.EncodeToString(h.Sum(nil)), n, nil
-}
-
-func tryXbinLink(dst, bin string) {
-	xbin := filepath.Join("/system/xbin", bin)
-	_ = exec.Command("mount", "-o", "remount,rw", "/system").Run()
-	_ = os.Remove(xbin)
-	_ = os.Symlink(dst, xbin)
-	_ = exec.Command("mount", "-o", "remount,ro", "/system").Run()
-}
-
 func takeScreenshot() ([]byte, error) {
 	// Android screencap → PNG на stdout
 	screencap := "/system/bin/screencap"
@@ -809,11 +696,6 @@ func readDisplayInfo() map[string]any {
 	info["screencap"] = fileExists("/system/bin/screencap")
 	info["ts"] = time.Now().Unix()
 	return info
-}
-
-func fileExists(p string) bool {
-	_, err := os.Stat(p)
-	return err == nil
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

@@ -241,6 +241,8 @@ function Packages() {
   const [repo, setRepo] = useState(null);
   const [installed, setInstalled] = useState({});
   const [bindir, setBindir] = useState("");
+  const [apkgPath, setApkgPath] = useState("");
+  const [flavor, setFlavor] = useState("");
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
   const [log, setLog] = useState("");
@@ -250,6 +252,8 @@ function Packages() {
     setRepo(data.repo);
     setInstalled(data.installed || {});
     setBindir(data.bindir || "");
+    setApkgPath(data.apkg || "");
+    setFlavor(data.flavor || "");
   }, []);
 
   useEffect(() => {
@@ -262,7 +266,7 @@ function Packages() {
     setLog("");
     try {
       const data = await api(`/api/install/${encodeURIComponent(name)}`, { method: "POST" });
-      setLog(`OK ${data.name} → ${data.path}`);
+      setLog(`apkg install ${data.name}\n${data.log || ""}`.trim());
       await refresh();
     } catch (e) {
       setError(String(e.message || e));
@@ -276,17 +280,23 @@ function Packages() {
       <div className="page-head">
         <div>
           <h1>Пакеты</h1>
-          <p>Установка бинарников на колонку</p>
+          <p>
+            Репозиторий <span className="mono">apkg</span>
+            {flavor ? ` · ${flavor}` : ""}
+            {bindir ? ` · ${bindir}` : ""}
+            {!apkgPath ? " · apkg скачается при установке" : ""}
+          </p>
         </div>
         <button type="button" className="btn ghost" onClick={() => refresh().catch((e) => setError(String(e.message || e)))}>
           Обновить
         </button>
       </div>
       {error && <div className="banner err">{error}</div>}
-      {log && <div className="banner ok">{log}</div>}
+      {log && <div className="banner ok" style={{ whiteSpace: "pre-wrap" }}>{log}</div>}
       <div className="pkg-list">
         {repo?.packages?.map((p) => {
           const on = !!installed[p.name];
+          const mb = p.size ? (p.size / 1024 / 1024).toFixed(1) : "?";
           return (
             <article key={p.name} className="pkg">
               <div>
@@ -295,13 +305,14 @@ function Packages() {
                   {p.description}
                   <br />
                   <span className="muted mono">
-                    v{p.version} · {(p.size / 1024 / 1024).toFixed(1)} МБ
+                    v{p.version}
+                    {p.category ? ` · ${p.category}` : ""} · {mb} МБ
                     {on ? " · установлено" : ""}
                   </span>
                 </p>
               </div>
               <button type="button" className="btn" disabled={!!busy} onClick={() => install(p.name)}>
-                {busy === p.name ? "…" : on ? "Переустановить" : "Установить"}
+                {busy === p.name ? "apkg…" : on ? "Переустановить" : "Установить"}
               </button>
             </article>
           );

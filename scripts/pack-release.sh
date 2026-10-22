@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Собрать alice-panel-station1.tar для GitHub Release (без gzip — на станции нет gunzip).
+# Пакеты больше не бандлятся — ставит apkg из yandex-station-repo.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -9,14 +10,11 @@ test -f web/dist/index.html || { echo "сначала: cd web && npm run build";
 
 STAGE="$ROOT/.release-stage"
 rm -rf "$STAGE"
-mkdir -p "$STAGE/repo/packages"
+mkdir -p "$STAGE/repo"
 cp dist/alice-httpd-linux-arm64 "$STAGE/alice-httpd"
 cp -R web/dist/. "$STAGE/"
 cp VERSION "$STAGE/VERSION"
-cp repo/packages.json repo/station-profile.json "$STAGE/repo/"
-for pkg in zsh fastfetch dropbear curl miniserve btop ffmpeg nano iperf3 tcpdump nmap; do
-  cp -R "repo/packages/$pkg" "$STAGE/repo/packages/"
-done
+cp repo/station-profile.json "$STAGE/repo/"
 chmod +x "$STAGE/alice-httpd"
 
 export COPYFILE_DISABLE=1

@@ -2,7 +2,9 @@
 
 Веб-панель для **Яндекс Станции 1 поколения** (`tulip-d1` / `yandexstation` / aarch64).
 
-Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.3.1**.
+Один бинарь `alice-httpd` на колонке, без Node. Актуальная версия: **v0.4.0**.
+
+Пакеты ставятся через **[apkg](https://github.com/initialfox/yandex-station-repo)** (удалённый индекс). Локального `repo/packages` в панели больше нет — если `apkg` отсутствует, панель скачивает его сама.
 
 ![Обзор панели](docs/panel-overview.png)
 
@@ -28,14 +30,16 @@
 
 ![Дисплей · снимок HDMI](docs/panel-display-shot.png)
 
-### Пакеты
-- Установка aarch64-бинарников в `/data/local/bin`
-- **zsh** ставится сразу при установке панели
-- **dropbear** (SSH), **curl**, **miniserve**, **btop**, **ffmpeg**
-- **nano**, **iperf3**, **tcpdump**, **nmap** (musl bundles → `/data/local/opt`)
-- В UI: **fastfetch** и переустановка
+### Пакеты (apkg)
+- Каталог с GitHub: [yandex-station-repo](https://github.com/initialfox/yandex-station-repo)
+- Установка в `/data/local/bin` (Android) или `/usr/local/bin` (buildroot)
+- При установке панели: `apkg` + **zsh**
+- В UI: список из remote `packages.json`, кнопка ставит через `apkg install`
 
 ![Пакеты](docs/panel-packages.png)
+
+### LED
+- Управление кольцом через `led_util` (локально на колонке, без ADB)
 
 ### Терминал
 - Веб-шелл в браузере (xterm + PTY)
