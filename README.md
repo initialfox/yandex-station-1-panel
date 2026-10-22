@@ -1,100 +1,140 @@
 # Alice Panel — Яндекс Станция 1
 
-Панель для **Станции 1 поколения** (`tulip-d1` / `yandexstation` / aarch64).
+Панель для **Станции 1** (`tulip-d1` / aarch64): обзор, железо, пакеты, терминал, дисплей.
 
-## Возможности
-
-- **Обзор** — прошивка Quasar, нагрузка, RAM, uptime, сеть (SSH/ADB/Glagol)
-- **Железо** — SoC Allwinner R18, I2C, модули ядра, разделы, HDMI
-- **Пакеты** — установка aarch64-бинарников на колонку (`zsh`, `fastfetch`, …) в `/data/local/bin`
-- **Терминал** — веб-шелл (PTY) прямо в браузере
-- **Дисплей** — снимки HDMI-экрана (в работе)
-
-API на колонке — один бинарь `alice-httpd` (`:8080`), без Node.
+После установки открыть: `http://<IP-колонки>:8080`
 
 ---
 
-## Установка
+## Установка через ADB (с нуля)
 
-Нужен **root**. Станция без CA-бандла у `curl` → для HTTPS нужен `-k`.  
-Прямой `adb push` в `/data/local` часто даёт Permission denied — скрипт кладёт tar в `/sdcard`, дальше root shell.
+Нужны: `adb` на компе, колонка в той же Wi‑Fi, root ADB.
 
-### 1) С колонки (curl / wget → GitHub)
+**1.** Скачай релиз:
+
+- https://github.com/initialfox/yandex-station-1-panel/releases/latest  
+- файл `alice-panel-station1.tar`
+
+**2.** Подключись:
+
+```bash
+adb connect <IP-колонки>:5555
+adb devices
+```
+
+**3.** Залей и запусти:
+
+```bash
+adb push alice-panel-station1.tar /sdcard/alice-panel-station1.tar
+adb shell
+```
+
+В шелле колонки:
+
+```sh
+pkill alice-httpd 2>/dev/null
+rm -rf /data/local/alice-panel
+mkdir -p /data/local/alice-panel /data/local/bin
+cd /data/local/alice-panel
+tar -xf /sdcard/alice-panel-station1.tar
+chmod 755 alice-httpd
+cat > start.sh <<'EOF'
+#!/system/bin/sh
+cd /data/local/alice-panel || exit 1
+pkill alice-httpd 2>/dev/null
+sleep 1
+setsid ./alice-httpd -listen 0.0.0.0:8080 -root . -repo ./repo -bindir /data/local/bin </dev/null >httpd.log 2>&1 &
+echo $!
+EOF
+chmod 755 start.sh
+sh start.sh
+```
+
+Готово. Рестарт позже: `sh /data/local/alice-panel/start.sh`
+
+> `adb push` сразу в `/data/local` на Станции 1 часто падает с Permission denied — поэтому через `/sdcard`.
+
+---
+
+## Установка через SSH (с нуля)
+
+Нужны: SSH-клиент, root на колонке (dropbear, порт **9865**).
+
+На станции **нет нормальных CA** у curl — без `-k` HTTPS не качается. SFTP тоже нет.
+
+### Вариант A — одной командой на колонке
+
+Зайди по SSH и выполни:
 
 ```sh
 curl -kfsSL https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh
 ```
 
+Если нет curl:
+
 ```sh
 wget --no-check-certificate -qO- https://raw.githubusercontent.com/initialfox/yandex-station-1-panel/main/install.sh | sh
 ```
 
-Фиксированный тег: `PANEL_TAG=v0.1.0` перед `| sh`.
+### Вариант B — залить tar с компа
 
-### 2) С Mac — ADB push
+**1.** Скачай `alice-panel-station1.tar` с [releases](https://github.com/initialfox/yandex-station-1-panel/releases/latest).
 
-Колонка в той же сети, ADB `:5555`:
-
-```bash
-adb connect 192.168.1.116:5555
-bash scripts/pack-release.sh   # если ещё нет alice-panel-station1.tar
-./scripts/install-adb.sh
-# или: ADB_SERIAL=192.168.1.116:5555 ./scripts/install-adb.sh
-```
-
-### 3) С Mac — SSH (без SFTP)
-
-На станции нет SFTP — tar уходит потоком через `ssh cat`. Порт dropbear обычно `9865`:
+**2.** С компа (Mac/Linux/Windows + OpenSSH):
 
 ```bash
-bash scripts/pack-release.sh
-SSH_HOST=192.168.1.116 SSH_PORT=9865 SSH_PASS='…' ./scripts/install-ssh.sh
-# нужен: brew install sshpass   (или ssh-ключ)
+ssh -p 9865 root@<IP-колонки>
 ```
 
-Через публичный IP то же самое: `SSH_HOST=91.x.x.x`.
-
-### 4) Вручную одной командой (SSH)
+В другом терминале отправь архив:
 
 ```bash
-cat alice-panel-station1.tar | ssh -p 9865 root@192.168.1.116 \
-  'cat > /data/local/tmp/p.tar && cd /data/local && rm -rf alice-panel && mkdir alice-panel && cd alice-panel && tar -xf /data/local/tmp/p.tar && sh start.sh || (chmod 755 alice-httpd && ./alice-httpd -listen 0.0.0.0:8080 -root . -repo ./repo -bindir /data/local/bin &)'
+cat alice-panel-station1.tar | ssh -p 9865 root@<IP-колонки> "cat > /data/local/tmp/alice-panel.tar"
 ```
 
-После установки:
+**3.** На колонке по SSH:
 
-```text
-http://<IP-колонки>:8080
+```sh
+pkill alice-httpd 2>/dev/null
+rm -rf /data/local/alice-panel
+mkdir -p /data/local/alice-panel /data/local/bin
+cd /data/local/alice-panel
+tar -xf /data/local/tmp/alice-panel.tar
+chmod 755 alice-httpd
+cat > start.sh <<'EOF'
+#!/system/bin/sh
+cd /data/local/alice-panel || exit 1
+pkill alice-httpd 2>/dev/null
+sleep 1
+setsid ./alice-httpd -listen 0.0.0.0:8080 -root . -repo ./repo -bindir /data/local/bin </dev/null >httpd.log 2>&1 &
+echo $!
+EOF
+chmod 755 start.sh
+sh start.sh
 ```
-
-Файлы: `/data/local/alice-panel/`. Лог: `httpd.log`. Рестарт: `sh /data/local/alice-panel/start.sh`.
 
 ---
 
-## Локальная разработка
+## Возможности
 
-```bash
-cd server && npm i && npm run dev   # :8080
-cd web && npm i && npm run dev      # :5173
-```
+| Раздел | Что делает |
+|--------|------------|
+| Обзор | Quasar, RAM, load, uptime, SSH/ADB/Glagol |
+| Железо | SoC, I2C, модули, разделы, HDMI |
+| Пакеты | Ставит `zsh` / `fastfetch` в `/data/local/bin` |
+| Терминал | Веб-шелл (PTY) |
+| Дисплей | Снимки HDMI (в работе) |
 
-Сборка релиза:
+Файлы на колонке: `/data/local/alice-panel/` · лог: `httpd.log`
+
+---
+
+## Разработка (не для установки на колонку)
 
 ```bash
 cd httpd && ./build.sh
-cd ../web && npm run build
+cd ../web && npm i && npm run build
 bash scripts/pack-release.sh
 ```
 
-## Структура
-
-```
-httpd/              Go alice-httpd (бинарь на станцию)
-web/                React UI
-server/             Express (только локальный тест)
-repo/               packages.json + бинарники + station-profile
-install.sh          установщик на колонке (curl|sh)
-scripts/install-adb.sh   ADB push с Mac
-scripts/install-ssh.sh   SSH stream с Mac
-scripts/pack-release.sh  сборка alice-panel-station1.tar
-```
+Локальный UI: `cd server && npm i && npm run dev` + `cd web && npm run dev`
